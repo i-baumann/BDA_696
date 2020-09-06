@@ -6,7 +6,7 @@ import plotly.io as pio
 from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import LabelEncoder, Normalizer
+from sklearn.preprocessing import Normalizer
 
 # Snag data
 url = "https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data"
@@ -139,10 +139,6 @@ def generatePlots():
 generatePlots()
 
 # Model time
-
-# Label encode class variable
-le = LabelEncoder()
-iris["class"] = le.fit_transform(iris["class"])
 
 # Get iris columns as arrays
 x = iris[["sepal_length", "sepal_width", "petal_length", "petal_width"]].values
