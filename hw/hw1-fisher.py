@@ -16,10 +16,32 @@ iris = pd.read_csv(
 )
 
 # Descriptive table (pandas)
-print("********** Iris Data Descriptive Stats **********")
+print("********** Iris Data Descriptive Stats (Pandas) **********")
 rows = ["mean", "min", "25%", "50%", "75%", "max"]
 pandas_table = np.round(iris.describe(), 2).loc[rows]
 print(pandas_table)
+
+# Descriptives (NumPy)
+print("\n********** Iris Data Descriptive Stats (NumPy) **********")
+
+# Special VLSJ (TM) (very long super janky) output
+iris_dict = iris.iloc[:, :-1].to_dict("list")
+for i, j in iris_dict.items():
+    print(
+        f"{i} mean:\n",
+        np.mean(j),
+        f"\n{i} min:\n",
+        np.min(j),
+        f"\n{i} 25%:\n",
+        np.quantile(j, 0.25),
+        f"\n{i} 50%:\n",
+        np.quantile(j, 0.5),
+        f"\n{i} 75%:\n",
+        np.quantile(j, 0.75),
+        f"\n{i} max:\n",
+        np.max(j),
+        "\n",
+    )
 
 # Plots
 
