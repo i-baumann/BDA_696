@@ -39,7 +39,7 @@ SELECT *
 SELECT *
 	FROM season_avg WHERE batter = 110029;
 	
--- Create 100 day rolling average
+-- Create 100 game rolling average
 
 CREATE TABLE rolling_avg
 	SELECT DATE(game.local_date) AS game_date,
@@ -51,7 +51,7 @@ CREATE TABLE rolling_avg
 			(SUM(atBat)
 				OVER (PARTITION BY batter
 				ORDER BY game_date ASC ROWS BETWEEN 101 PRECEDING AND 1 PRECEDING))
-			AS avg_100
+			AS avg_100_games_prior
 	FROM batter_counts JOIN game ON batter_counts.game_id = game.game_id WHERE atBat > 0
 	GROUP BY game_date ASC, batter
 	ORDER BY game_date ASC, batter;
