@@ -14,7 +14,7 @@ DROP TABLE IF EXISTS career_avg,
 CREATE TABLE career_avg
 	SELECT batter,
 		SUM(Hit) / SUM(atBat) AS bat_avg_career
-	FROM batter_counts JOIN game ON batter_counts.game_id = game.game_id WHERE atBat > 0
+	FROM batter_counts WHERE atBat > 0
 	GROUP BY batter;
 
 SELECT *
