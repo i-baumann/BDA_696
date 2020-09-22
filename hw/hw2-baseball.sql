@@ -27,7 +27,7 @@ SELECT *
 
 CREATE TABLE season_avg
 	SELECT batter,
-		YEAR(local_date) as season,
+		YEAR(game.local_date) as season,
 		SUM(Hit) / SUM(atBat) AS bat_avg_season
 	FROM batter_counts JOIN game ON batter_counts.game_id = game.game_id WHERE atBat > 0
 	GROUP BY batter, season
@@ -42,7 +42,7 @@ SELECT *
 -- Create 100 day rolling average
 
 CREATE TABLE rolling_avg
-	SELECT DATE(local_date) AS game_date,
+	SELECT DATE(game.local_date) AS game_date,
 		batter,
 		(SUM(Hit)
 			OVER (PARTITION BY batter
