@@ -7,7 +7,7 @@
 
 USE baseball;
 
-DROP TABLE IF EXISTS rolling_avg_day_faster
+DROP TABLE IF EXISTS rolling_avg_day_faster;
 
 CREATE TABLE rolling_avg_day_faster
     SELECT DATE(g.local_date) AS game_date,
