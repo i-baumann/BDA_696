@@ -45,7 +45,7 @@ SELECT *
 -- keeping this in here because this is a better stat and I'm petty
 
 CREATE TABLE rolling_avg_game
-	SELECT DATE(game.local_date) AS game_date, Hit, atBat,
+	SELECT DATE(game.local_date) AS game_date,
 		batter,
 		(SUM(Hit)
 			OVER (PARTITION BY batter
@@ -56,7 +56,7 @@ CREATE TABLE rolling_avg_game
 			ORDER BY game.local_date ASC ROWS BETWEEN 101 PRECEDING AND 1 PRECEDING))
 		AS avg_100_games_prior
 FROM batter_counts JOIN game ON batter_counts.game_id = game.game_id WHERE atBat > 0
-GROUP BY game_date, game.local_date, Hit, atBat, batter
+GROUP BY game_date, batter
 ORDER BY game_date ASC, batter;
 
 SELECT *
@@ -69,7 +69,7 @@ SELECT *
 
 CREATE TABLE temp_rolling
 	SELECT batter,
-		DATE(g.local_date) AS game_date,
+		DATE(g.local_date) as game_date,
 		DATE(DATE_SUB(g.local_date, INTERVAL 101 DAY)) AS day_100_prior,
 		DATE(DATE_SUB(g.local_date, INTERVAL 1 DAY)) AS day_prior,
 		Hit,
@@ -89,11 +89,11 @@ CREATE TABLE rolling_avg_day
 	GROUP BY batter, game_date
 	ORDER BY batter, game_date;
 
+DROP TABLE IF EXISTS temp_rolling;
+
 SELECT *
 	FROM rolling_avg_day;
 
 SELECT *
 	FROM rolling_avg_day WHERE batter = 110029;
-	
-	
 	
