@@ -2,7 +2,7 @@
 
 source ../venv/bin/activate
 
-pip install -r ../requirements.txt
+pip install -r ../requirements.in
 
 rm -rf -- "hw4_plots"
 mkdir -p -- "hw4_plots"
