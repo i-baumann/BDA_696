@@ -52,7 +52,7 @@ def response_processing(df, response):
     # - If string
     # - If unique values make up less than 5% of total obs
 
-    response_col = df[response]
+    response_col = df[response].to_frame()
     resp_string_check = isinstance(response_col.values, str)
     resp_unique_ratio = len(np.unique(response_col.values)) / len(response_col.values)
 
@@ -60,13 +60,14 @@ def response_processing(df, response):
         resp_type = "Categorical"
 
         # Plot histogram
-        resp_col_plot = response_col.to_frame()
-        resp_plot = px.histogram(resp_col_plot)
+        # resp_col_plot = response_col.to_frame()
+        resp_plot = px.histogram(response_col)
         resp_plot.write_html(file=f"./hw4_plots/response.html", include_plotlyjs="cdn")
 
         # Encode variable (assuming binary, as given in assignment description)
-        response_col = response_col.astype("category")
-        response_col = response_col.cat.codes
+        response_col[response] = response_col[response].astype("category")
+        response_col["coded"] = response_col[response].cat.codes
+        response_col = response_col[["coded", response]]
 
     else:
         resp_type = "Continuous"
@@ -116,15 +117,18 @@ def predictor_processing(df, predicts, response, response_col, resp_type, resp_m
             pred_type = "Categorical"
 
             # Encode
-            pred_data = pred_data.astype("category")
-            pred_data = pred_data.cat.codes
+            pred_data = pred_data.to_frame()
+            pred_data[pred_name] = pred_data[pred_name].astype("category")
+            pred_data["coded"] = pred_data[pred_name].cat.codes
+            pred_data = pred_data[["coded", pred_name]]
 
         else:
             pred_type = "Continuous"
+            pred_data = pred_data.to_frame()
 
         # Relationship plot
         if resp_type == "Categorical" and pred_type == "Categorical":
-            rel_matrix = confusion_matrix(pred_data, response_col)
+            rel_matrix = confusion_matrix(pred_data.iloc[:, 0], response_col.iloc[:, 0])
             fig_relate = go.Figure(
                 data=go.Heatmap(z=rel_matrix, zmin=0, zmax=rel_matrix.max())
             )
@@ -137,9 +141,11 @@ def predictor_processing(df, predicts, response, response_col, resp_type, resp_m
         elif resp_type == "Categorical" and pred_type == "Continuous":
 
             # Group data together
-            df_c_ne = pd.concat([response_col, pred_data], axis=1)
+            df_c_ne = pd.concat([response_col.iloc[:, 0], pred_data.iloc[:, 0]], axis=1)
 
-            fig_relate = px.histogram(df_c_ne, x=pred_name, color=response_col)
+            fig_relate = px.histogram(
+                df_c_ne, x=pred_name, color=response_col.iloc[:, 1]
+            )
             fig_relate.update_layout(
                 title=f"Relationship Between {response} and {pred_name}",
                 xaxis_title=pred_name,
@@ -149,9 +155,9 @@ def predictor_processing(df, predicts, response, response_col, resp_type, resp_m
         elif resp_type == "Continuous" and pred_type == "Categorical":
 
             # Group data together
-            df_c_ne = pd.concat([response_col, pred_data], axis=1)
+            df_c_ne = pd.concat([response_col.iloc[:, 0], pred_data.iloc[:, 0]], axis=1)
 
-            fig_relate = px.histogram(df_c_ne, x=response, color=pred_data)
+            fig_relate = px.histogram(df_c_ne, x=response, color=pred_data.iloc[:, 1])
             fig_relate.update_layout(
                 title=f"Relationship Between {response} and {pred_name}",
                 xaxis_title=response,
@@ -160,7 +166,9 @@ def predictor_processing(df, predicts, response, response_col, resp_type, resp_m
 
         elif resp_type == "Continuous" and pred_type == "Continuous":
 
-            fig_relate = px.scatter(y=response_col, x=pred_data, trendline="ols")
+            fig_relate = px.scatter(
+                y=response_col.iloc[:, 0], x=pred_data.iloc[:, 0], trendline="ols"
+            )
             fig_relate.update_layout(
                 title=f"Relationship Between {response} and {pred_name}",
                 xaxis_title=pred_name,
@@ -180,10 +188,14 @@ def predictor_processing(df, predicts, response, response_col, resp_type, resp_m
         ##########
 
         if resp_type == "Categorical":
-            reg_model = sm.Logit(response_col, pred_data, missing="drop")
+            reg_model = sm.Logit(
+                response_col.iloc[:, 0], pred_data.iloc[:, 0], missing="drop"
+            )
 
         else:
-            reg_model = sm.OLS(response_col, pred_data, missing="drop")
+            reg_model = sm.OLS(
+                response_col.iloc[:, 0], pred_data.iloc[:, 0], missing="drop"
+            )
 
         # Fit model
         reg_model_fitted = reg_model.fit()
@@ -193,7 +205,9 @@ def predictor_processing(df, predicts, response, response_col, resp_type, resp_m
         p_value = "{:.6e}".format(reg_model_fitted.pvalues[0])
 
         # Plot regression
-        reg_fig = px.scatter(y=response_col, x=pred_data, trendline="ols")
+        reg_fig = px.scatter(
+            y=response_col.iloc[:, 0], x=pred_data.iloc[:, 0], trendline="ols"
+        )
         reg_fig.write_html(
             file=f"./hw4_plots/{pred_name}_regression.html", include_plotlyjs="cdn"
         )
@@ -212,7 +226,7 @@ def predictor_processing(df, predicts, response, response_col, resp_type, resp_m
         ##########
 
         # Bind response and predictor together again
-        df_c = pd.concat([response_col, pred_data], axis=1)
+        df_c = pd.concat([response_col.iloc[:, 0], pred_data.iloc[:, 0]], axis=1)
         df_c.columns = [response, pred_name]
 
         # Get user input on number of mean diff bins to use
@@ -235,10 +249,10 @@ def predictor_processing(df, predicts, response, response_col, resp_type, resp_m
 
         else:
             df_c.columns = [f"{response}", f"{pred_name}"]
-            binned_means = df_c.groupby(pred_data).agg(
+            binned_means = df_c.groupby(pred_data.iloc[:, 0]).agg(
                 {response: ["mean", "count"], pred_name: "mean"}
             )
-            bin_n = len(np.unique(pred_data.values))
+            bin_n = len(np.unique(pred_data.iloc[:, 0].values))
 
         binned_means.columns = [f"{response} mean", "count", f"{pred_name} mean"]
 
@@ -289,9 +303,11 @@ def predictor_processing(df, predicts, response, response_col, resp_type, resp_m
 
         # Create processed df
         if pred_name == predicts[0]:
-            pred_proc = pd.concat([response_col, pred_data], axis=1)
+            pred_proc = pd.concat(
+                [response_col.iloc[:, 0], pred_data.iloc[:, 0]], axis=1
+            )
         else:
-            pred_proc = pd.concat([pred_proc, pred_data], axis=1)
+            pred_proc = pd.concat([pred_proc, pred_data.iloc[:, 0]], axis=1)
 
         # Add to results table
         results.loc[pred_name] = pd.Series(
