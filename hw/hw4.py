@@ -34,9 +34,7 @@ def load():
     predicts = []
     pred_check = False
     while predicts not in col_names and pred_check is False:
-        predicts = input(
-            "\nEnter predictor variables (comma-separated):\n"
-        ).split(", ")
+        predicts = input("\nEnter predictor variables (comma-separated):\n").split(", ")
         pred_check = all(item in col_names for item in predicts)
     else:
         pass
@@ -181,7 +179,11 @@ def predictor_processing(df, predicts, response, response_col, resp_type, resp_m
         relate_file_open = f"./{response_html}_{pred_name_html}_relate.html"
         fig_relate.write_html(file=relate_file_save, include_plotlyjs="cdn")
         relate_link = (
-            "<a target='blank' href=" + relate_file_open + "><div>" + pred_name + "</div></a>"
+            "<a target='blank' href="
+            + relate_file_open
+            + "><div>"
+            + pred_name
+            + "</div></a>"
         )
 
         # Regression
