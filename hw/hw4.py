@@ -17,7 +17,7 @@ def load():
 
     filepath = ""
     while not os.path.exists(filepath):
-        filepath = input("\nEnter *FULL* valid filepath for data:\n")
+        filepath = input("\nEnter *FULL* valid filepath for csv:\n")
 
     df = pd.read_csv(filepath)
 
@@ -50,7 +50,7 @@ def response_processing(df, response):
     # - If string
     # - If unique values make up less than 5% of total obs
 
-    response_col = df[response].to_frame()
+    response_col = df[response]
     resp_string_check = isinstance(response_col.values, str)
     resp_unique_ratio = len(np.unique(response_col.values)) / len(response_col.values)
 
@@ -62,13 +62,16 @@ def response_processing(df, response):
         resp_plot = px.histogram(response_col)
         resp_plot.write_html(file=f"./hw4_plots/response.html", include_plotlyjs="cdn")
 
-        # Encode variable (assuming binary, as given in assignment description)
-        response_col[response] = response_col[response].astype("category")
-        response_col["coded"] = response_col[response].cat.codes
-        response_col = response_col[["coded", response]]
+        # Encode
+        response_col = pd.Categorical(response_col, categories=response_col.unique())
+        response_col, resp_labels = pd.factorize(response_col)
+
+        response_col = pd.DataFrame(response_col, columns=[response])
+        response_col_uncoded = df[response]
 
     else:
         resp_type = "Continuous"
+        response_col_uncoded = []
 
         # Plot histogram
         resp_plot = px.histogram(response_col)
@@ -83,10 +86,12 @@ def response_processing(df, response):
             Plots will reflect linear probability models, not logit regressions."""
         )
 
-    return response_col, resp_type, resp_mean
+    return response_col, resp_type, resp_mean, response_col_uncoded
 
 
-def predictor_processing(df, predicts, response, response_col, resp_type, resp_mean):
+def predictor_processing(
+    df, predicts, response, response_col, resp_type, resp_mean, response_col_uncoded
+):
     # Predictor loop
     ########################################
 
@@ -115,18 +120,23 @@ def predictor_processing(df, predicts, response, response_col, resp_type, resp_m
             pred_type = "Categorical"
 
             # Encode
-            pred_data = pred_data.to_frame()
-            pred_data[pred_name] = pred_data[pred_name].astype("category")
-            pred_data["coded"] = pred_data[pred_name].cat.codes
-            pred_data = pred_data[["coded", pred_name]]
+            pred_data = pd.Categorical(pred_data, categories=pred_data.unique())
+            pred_data, pred_labels = pd.factorize(pred_data)
+
+            pred_data = pd.DataFrame(pred_data, columns=[pred_name])
+            pred_data_uncoded = df[pred_name]
 
         else:
             pred_type = "Continuous"
             pred_data = pred_data.to_frame()
 
-        # Relationship plot
+        # Bind response and predictor together again
+        df_c = pd.concat([response_col, pred_data], axis=1)
+        df_c.columns = [response, pred_name]
+
+        # Relationship plot and correlations
         if resp_type == "Categorical" and pred_type == "Categorical":
-            rel_matrix = confusion_matrix(pred_data.iloc[:, 0], response_col.iloc[:, 0])
+            rel_matrix = confusion_matrix(pred_data, response_col)
             fig_relate = go.Figure(
                 data=go.Heatmap(z=rel_matrix, zmin=0, zmax=rel_matrix.max())
             )
@@ -138,12 +148,7 @@ def predictor_processing(df, predicts, response, response_col, resp_type, resp_m
 
         elif resp_type == "Categorical" and pred_type == "Continuous":
 
-            # Group data together
-            df_c_ne = pd.concat([response_col.iloc[:, 0], pred_data.iloc[:, 0]], axis=1)
-
-            fig_relate = px.histogram(
-                df_c_ne, x=pred_name, color=response_col.iloc[:, 1]
-            )
+            fig_relate = px.histogram(df_c, x=pred_name, color=response_col_uncoded)
             fig_relate.update_layout(
                 title=f"Relationship Between {response} and {pred_name}",
                 xaxis_title=pred_name,
@@ -152,10 +157,7 @@ def predictor_processing(df, predicts, response, response_col, resp_type, resp_m
 
         elif resp_type == "Continuous" and pred_type == "Categorical":
 
-            # Group data together
-            df_c_ne = pd.concat([response_col.iloc[:, 0], pred_data.iloc[:, 0]], axis=1)
-
-            fig_relate = px.histogram(df_c_ne, x=response, color=pred_data.iloc[:, 1])
+            fig_relate = px.histogram(df_c, x=response, color=pred_data_uncoded)
             fig_relate.update_layout(
                 title=f"Relationship Between {response} and {pred_name}",
                 xaxis_title=response,
@@ -164,9 +166,7 @@ def predictor_processing(df, predicts, response, response_col, resp_type, resp_m
 
         elif resp_type == "Continuous" and pred_type == "Continuous":
 
-            fig_relate = px.scatter(
-                y=response_col.iloc[:, 0], x=pred_data.iloc[:, 0], trendline="ols"
-            )
+            fig_relate = px.scatter(y=response_col, x=pred_data, trendline="ols")
             fig_relate.update_layout(
                 title=f"Relationship Between {response} and {pred_name}",
                 xaxis_title=pred_name,
@@ -175,6 +175,7 @@ def predictor_processing(df, predicts, response, response_col, resp_type, resp_m
 
         response_html = response.replace(" ", "")
         pred_name_html = pred_name.replace(" ", "")
+
         relate_file_save = f"./hw4_plots/{response_html}_{pred_name_html}_relate.html"
         relate_file_open = f"./{response_html}_{pred_name_html}_relate.html"
         fig_relate.write_html(file=relate_file_save, include_plotlyjs="cdn")
@@ -182,7 +183,7 @@ def predictor_processing(df, predicts, response, response_col, resp_type, resp_m
             "<a target='blank' href="
             + relate_file_open
             + "><div>"
-            + pred_name
+            + pred_type
             + "</div></a>"
         )
 
@@ -190,14 +191,10 @@ def predictor_processing(df, predicts, response, response_col, resp_type, resp_m
         ##########
 
         if resp_type == "Categorical":
-            reg_model = sm.Logit(
-                response_col.iloc[:, 0], pred_data.iloc[:, 0], missing="drop"
-            )
+            reg_model = sm.Logit(response_col, pred_data, missing="drop")
 
         else:
-            reg_model = sm.OLS(
-                response_col.iloc[:, 0], pred_data.iloc[:, 0], missing="drop"
-            )
+            reg_model = sm.OLS(response_col, pred_data, missing="drop")
 
         # Fit model
         reg_model_fitted = reg_model.fit()
@@ -207,9 +204,7 @@ def predictor_processing(df, predicts, response, response_col, resp_type, resp_m
         p_value = "{:.6e}".format(reg_model_fitted.pvalues[0])
 
         # Plot regression
-        reg_fig = px.scatter(
-            y=response_col.iloc[:, 0], x=pred_data.iloc[:, 0], trendline="ols"
-        )
+        reg_fig = px.scatter(y=df_c[response], x=df_c[pred_name], trendline="ols")
         reg_fig.write_html(
             file=f"./hw4_plots/{pred_name}_regression.html", include_plotlyjs="cdn"
         )
@@ -226,10 +221,6 @@ def predictor_processing(df, predicts, response, response_col, resp_type, resp_m
 
         # Diff with mean of response (unweighted and weighted)
         ##########
-
-        # Bind response and predictor together again
-        df_c = pd.concat([response_col.iloc[:, 0], pred_data.iloc[:, 0]], axis=1)
-        df_c.columns = [response, pred_name]
 
         # Get user input on number of mean diff bins to use
         if pred_type == "Continuous":
@@ -304,12 +295,10 @@ def predictor_processing(df, predicts, response, response_col, resp_type, resp_m
         )
 
         # Create processed df
-        if pred_name == predicts[0]:
-            pred_proc = pd.concat(
-                [response_col.iloc[:, 0], pred_data.iloc[:, 0]], axis=1
-            )
+        if pred_name == predicts_col.columns[0]:
+            pred_proc = pd.concat([response_col, pred_data], axis=1)
         else:
-            pred_proc = pd.concat([pred_proc, pred_data.iloc[:, 0]], axis=1)
+            pred_proc = pd.concat([pred_proc, pred_data], axis=1)
 
         # Add to results table
         results.loc[pred_name] = pd.Series(
@@ -368,9 +357,11 @@ def results_table(results, importance):
 def main():
     np.random.seed(seed=1234)
     df, response, predicts = load()
-    response_col, resp_type, resp_mean = response_processing(df, response)
+    response_col, resp_type, resp_mean, response_col_uncoded = response_processing(
+        df, response
+    )
     pred_proc, results = predictor_processing(
-        df, predicts, response, response_col, resp_type, resp_mean
+        df, predicts, response, response_col, resp_type, resp_mean, response_col_uncoded
     )
     importance = random_forest_importance(resp_type, pred_proc, predicts)
     results_table(results, importance)
