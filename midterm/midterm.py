@@ -9,7 +9,6 @@ import statsmodels.api as sm
 from cat_correlation import cat_correlation
 from plotly.subplots import make_subplots
 from scipy import stats
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.metrics import confusion_matrix
 
 
@@ -135,7 +134,7 @@ def predictor_processing(
 
         else:
             pred_type = "Continuous"
-            pred_data = pred_data.to_frame()
+            # pred_data = pred_data.to_frame()
 
         # Bind response and predictor together again
         df_c = pd.concat([response_col, pred_data], axis=1)
@@ -363,41 +362,12 @@ def predictor_processing(
     return pred_proc, results
 
 
-def random_forest_importance(resp_type, pred_proc, predicts):
-    # Random forest variable importance
-    ##########
-
-    if resp_type == "Categorical":
-        model = RandomForestClassifier()
-    else:
-        model = RandomForestRegressor()
-
-    # Impute: replace missing values with mean
-    na_cols = pred_proc.columns[pred_proc.isna().any()].tolist()
-    if na_cols == "":
-        pass
-    else:
-        pred_proc.loc[:, na_cols] = pred_proc.loc[:, na_cols].fillna(
-            pred_proc.loc[:, na_cols].mean()
-        )
-
-    # Fit random forest model
-    model.fit(pred_proc.iloc[:, 1:], pred_proc.iloc[:, 0])
-    importance = model.feature_importances_
-    importance = importance.reshape(len(predicts), 1)
-    importance = pd.DataFrame(importance, index=predicts)
-    importance.columns = ["Random Forest Importance"]
-
-    return importance
-
-
 def pred_processing_two_way(results):
 
     return
 
 
-def results_table(results, importance):
-    results = pd.concat([results, importance], axis=1)
+def results_table(results):
 
     with open("./midterm_plots/results.html", "w") as html_open:
         results.to_html(html_open, escape=False)
@@ -414,8 +384,7 @@ def main():
     pred_proc, results = predictor_processing(
         df, predicts, response, response_col, resp_type, resp_mean, response_col_uncoded
     )
-    importance = random_forest_importance(resp_type, pred_proc, predicts)
-    results_table(results, importance)
+    results_table(results)
     return
 
 
