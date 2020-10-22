@@ -1,5 +1,6 @@
 import os.path
 import sys
+from itertools import combinations
 
 import numpy as np
 import pandas as pd
@@ -103,7 +104,7 @@ def predictor_processing(
     predicts_col = df[df.columns.intersection(predicts)]
 
     # Build preliminary results table
-    results_cols = [
+    results_resp_x_pred_cols = [
         "Response",
         "Predictor Type",
         "Correlation",
@@ -114,7 +115,20 @@ def predictor_processing(
         "Diff Mean of Response (Weighted)",
         "Diff Mean Plot",
     ]
-    results = pd.DataFrame(columns=results_cols, index=predicts)
+    results_resp_x_pred = pd.DataFrame(columns=results_resp_x_pred_cols, index=predicts)
+
+    # Get user input on bins to use for diff of mean of response
+    bin_n = ""
+    while isinstance(bin_n, int) is False or bin_n == "":
+        bin_n = input(
+            f"\nEnter number of bins to use for difference with mean of response:\n"
+        )
+        try:
+            bin_n = int(bin_n)
+        except Exception:
+            continue
+    else:
+        pass
 
     for pred_name, pred_data in predicts_col.iteritems():
 
@@ -264,30 +278,19 @@ def predictor_processing(
         # Diff with mean of response (unweighted and weighted)
         ##########
 
-        # Get user input on number of mean diff bins to use
         if pred_type == "Continuous":
-            bin_n = ""
-            while isinstance(bin_n, int) is False or bin_n == "":
-                bin_n = input(
-                    f"\nEnter number of bins to use for difference with mean of response for {pred_name}:\n"
-                )
-                try:
-                    bin_n = int(bin_n)
-                except Exception:
-                    continue
-            else:
-                pass
             df_c["bin_labels"] = pd.cut(df_c[pred_name], bins=bin_n, labels=False)
             binned_means = df_c.groupby("bin_labels").agg(
                 {response: ["mean", "count"], pred_name: "mean"}
             )
+            bin_f = bin_n
 
         else:
             df_c.columns = [f"{response}", f"{pred_name}"]
             binned_means = df_c.groupby(pred_data.iloc[:, 0]).agg(
                 {response: ["mean", "count"], pred_name: "mean"}
             )
-            bin_n = len(np.unique(pred_data.iloc[:, 0].values))
+            bin_f = len(np.unique(pred_data.iloc[:, 0].values))
 
         binned_means.columns = [f"{response} mean", "count", f"{pred_name} mean"]
 
@@ -301,7 +304,7 @@ def predictor_processing(
         )
 
         # Diff with mean of response stat calculations (weighted and unweighted)
-        msd_uw = binned_means["mean_sq_diff"].sum() * (1 / bin_n)
+        msd_uw = binned_means["mean_sq_diff"].sum() * (1 / bin_f)
         msd_w = binned_means["mean_sq_diff_w"].sum()
 
         # Diff with mean of response plots
@@ -344,8 +347,8 @@ def predictor_processing(
         else:
             pred_proc = pd.concat([pred_proc, pred_data], axis=1)
 
-        # Add to results table
-        results.loc[pred_name] = pd.Series(
+        # Add to results (response_x_predictor) table
+        results_resp_x_pred.loc[pred_name] = pd.Series(
             {
                 "Response": response,
                 "Predictor Type": relate_link,
@@ -359,18 +362,215 @@ def predictor_processing(
             }
         )
 
-    return pred_proc, results
+    return pred_proc, results_resp_x_pred, predicts_col, bin_n
 
 
-def pred_processing_two_way(results):
+def pred_processing_two_way(response, predicts_col, bin_n, response_col, resp_mean):
+    combs = list(combinations(predicts_col.columns, 2))
 
-    return
+    combs_len = range(1, len(combs))
+
+    # Build preliminary results table - brute force
+    results_brute_force_cols = [
+        "Response",
+        "Predictor 1",
+        "Predictor 2",
+        "Predictor 1 Type",
+        "Predictor 2 Type",
+        "DMR Unweighted",
+        "DMR Weighted",
+        "Plot",
+    ]
+    results_brute_force = pd.DataFrame(
+        columns=results_brute_force_cols, index=combs_len
+    )
+
+    # Build preliminary results table - correlation table
+    results_pred_corr_cols = [
+        "Response",
+        "Predictor 1",
+        "Predictor 2",
+        "Predictor 1 Type",
+        "Predictor 2 Type",
+        "Correlation",
+    ]
+    results_pred_corr = pd.DataFrame(columns=results_pred_corr_cols, index=combs_len)
+
+    comb_pos = 1
+
+    for comb in combs:
+
+        pred_name_1 = comb[0]
+        pred_name_2 = comb[1]
+
+        pred_data_1 = predicts_col[comb[0]]
+        pred_data_2 = predicts_col[comb[1]]
+
+        # Decide cat or cont
+        ##########
+        pred_string_check = isinstance(pred_data_1, str)
+        pred_unique_ratio = len(pred_data_1.unique()) / len(pred_data_1)
+        if pred_string_check or pred_unique_ratio < 0.05:
+            pred_type_1 = "Categorical"
+
+            # Encode
+            pred_data_1 = pd.Categorical(pred_data_1, categories=pred_data_1.unique())
+            pred_data_1, pred_labels_1 = pd.factorize(pred_data_1)
+
+            pred_data_1 = pd.DataFrame(pred_data_1, columns=[pred_name_1])
+
+        else:
+            pred_type_1 = "Continuous"
+
+        # Decide cat or cont
+        ##########
+        pred_string_check = isinstance(pred_data_2, str)
+        pred_unique_ratio = len(pred_data_2.unique()) / len(pred_data_2)
+        if pred_string_check or pred_unique_ratio < 0.05:
+            pred_type_2 = "Categorical"
+
+            # Encode
+            pred_data_2 = pd.Categorical(pred_data_2, categories=pred_data_2.unique())
+            pred_data_2, pred_labels_2 = pd.factorize(pred_data_2)
+
+            pred_data_2 = pd.DataFrame(pred_data_2, columns=[pred_name_2])
+
+        else:
+            pred_type_2 = "Continuous"
+
+        # Bind response and predictors
+        df_p = pd.concat([response_col, pred_data_1, pred_data_2], axis=1)
+
+        if pred_type_1 == "Categorical" and pred_type_2 == "Categorical":
+            corr = cat_correlation(df_p[pred_name_2], df_p[pred_name_1])
+
+        elif (
+            pred_type_1 == "Categorical"
+            and pred_type_2 == "Continuous"
+            or pred_type_1 == "Continuous"
+            and pred_type_2 == "Categorical"
+        ):
+
+            corr = stats.pointbiserialr(df_p[pred_name_1], df_p[pred_name_2])[0]
+
+        elif pred_type_1 == "Continuous" and pred_type_2 == "Continuous":
+
+            corr = df_p[pred_name_1].corr(df_p[pred_name_2])
+
+        # Mean of response two-way calc
+        #############
+        if pred_type_1 == "Continuous":
+            df_p["bin_labels_1"] = pd.cut(df_p[pred_name_1], bins=bin_n, labels=False)
+            bin_1_f = bin_n
+
+        else:
+            df_p["bin_labels_1"] = df_p[pred_name_1]
+            bin_1_f = len(np.unique(pred_data_1.iloc[:, 0].values))
+
+        if pred_type_2 == "Continuous":
+            df_p["bin_labels_2"] = pd.cut(df_p[pred_name_2], bins=bin_n, labels=False)
+            bin_2_f = bin_n
+
+        else:
+            df_p["bin_labels_2"] = df_p[pred_name_2]
+            bin_2_f = len(np.unique(pred_data_2.iloc[:, 0].values))
+
+        binned_means_total = df_p.groupby(
+            ["bin_labels_1", "bin_labels_2"], as_index=False
+        ).agg({response: ["mean", "count"]})
+
+        squared_diff = (
+            binned_means_total.iloc[
+                :, binned_means_total.columns.get_level_values(1) == "mean"
+            ].sub(resp_mean, level=0)
+            ** 2
+        )
+
+        binned_means_total["mean_sq_diff"] = squared_diff
+
+        weights_group = binned_means_total.iloc[
+            :, binned_means_total.columns.get_level_values(1) == "count"
+        ]
+
+        weights_tot = binned_means_total.iloc[
+            :, binned_means_total.columns.get_level_values(1) == "count"
+        ].sum()
+
+        binned_means_total["weight"] = weights_group.div(weights_tot)
+
+        binned_means_total["mean_sq_diff_w"] = (
+            binned_means_total["weight"] * binned_means_total["mean_sq_diff"]
+        )
+
+        plot_data = binned_means_total.pivot(
+            index="bin_labels_1", columns="bin_labels_2", values="mean_sq_diff_w"
+        )
+        fig_dmr = go.Figure(data=[go.Surface(z=plot_data.values)])
+        fig_dmr.update_layout(
+            title=f"DMR (Weighted): {pred_name_1} and {pred_name_2}",
+            autosize=True,
+            scene=dict(
+                xaxis_title=pred_name_1, yaxis_title=pred_name_2, zaxis_title=response
+            ),
+        )
+
+        msd_uw_group = binned_means_total["mean_sq_diff"].sum() * (
+            1 / (bin_1_f * bin_2_f)
+        )
+        msd_w_group = binned_means_total["mean_sq_diff_w"].sum()
+
+        fig_dmr_file_save = f"./midterm_plots/{pred_name_1}_{pred_name_2}_dmr.html"
+        fig_dmr_file_open = f"./{pred_name_1}_{pred_name_2}_dmr.html"
+        fig_dmr.write_html(file=fig_dmr_file_save, include_plotlyjs="cdn")
+        fig_dmr_link = (
+            "<a target='blank' href=" + fig_dmr_file_open + "><div>Plot</div></a>"
+        )
+
+        results_brute_force.loc[comb_pos] = pd.Series(
+            {
+                "Response": response,
+                "Predictor 1": pred_name_1,
+                "Predictor 2": pred_name_2,
+                "Predictor 1 Type": pred_type_1,
+                "Predictor 2 Type": pred_type_2,
+                "DMR Unweighted": msd_uw_group,
+                "DMR Weighted": msd_w_group,
+                "Plot": fig_dmr_link,
+            }
+        )
+
+        results_pred_corr.loc[comb_pos] = pd.Series(
+            {
+                "Response": response,
+                "Predictor 1": pred_name_1,
+                "Predictor 2": pred_name_2,
+                "Predictor 1 Type": pred_type_1,
+                "Predictor 2 Type": pred_type_2,
+                "Correlation": corr,
+            }
+        )
+
+        comb_pos += 1
+
+    results_brute_force = results_brute_force.sort_values(
+        ["DMR Weighted"], ascending=False
+    )
+
+    results_pred_corr = results_pred_corr.sort_values(["Correlation"], ascending=False)
+
+    return results_brute_force, results_pred_corr
 
 
-def results_table(results):
+def results_table(results_resp_x_pred, results_brute_force, results_pred_corr):
 
-    with open("./midterm_plots/results.html", "w") as html_open:
-        results.to_html(html_open, escape=False)
+    with open("./midterm_plots/results_resp_x_pred.html", "w") as html_open:
+        results_resp_x_pred.to_html(html_open, escape=False)
+
+    with open("./midterm_plots/results_brute_force.html", "w") as html_open:
+        results_brute_force.to_html(html_open, escape=False)
+
+    with open("./midterm_plots/results_pred_corr.html", "w") as html_open:
+        results_pred_corr.to_html(html_open, escape=False)
 
     return
 
@@ -381,10 +581,13 @@ def main():
     response_col, resp_type, resp_mean, response_col_uncoded = response_processing(
         df, response
     )
-    pred_proc, results = predictor_processing(
+    pred_proc, results_resp_x_pred, predicts_col, bin_n = predictor_processing(
         df, predicts, response, response_col, resp_type, resp_mean, response_col_uncoded
     )
-    results_table(results)
+    results_brute_force, results_pred_corr = pred_processing_two_way(
+        response, predicts_col, bin_n, response_col, resp_mean
+    )
+    results_table(results_resp_x_pred, results_brute_force, results_pred_corr)
     return
 
 
