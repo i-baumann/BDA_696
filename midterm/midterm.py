@@ -13,6 +13,8 @@ from plotly.subplots import make_subplots
 from scipy import stats
 from sklearn.metrics import confusion_matrix
 
+pd.options.mode.chained_assignment = None
+
 
 def load():
     # Load dataframe, get variable info
