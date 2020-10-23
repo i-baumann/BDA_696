@@ -8,6 +8,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import statsmodels.api as sm
 from cat_correlation import cat_cont_correlation_ratio, cat_correlation
+from pandas.api.types import is_string_dtype
 from plotly.subplots import make_subplots
 from scipy import stats
 from sklearn.metrics import confusion_matrix
@@ -66,7 +67,11 @@ def response_processing(df, response):
     # - If unique values make up less than 5% of total obs
 
     response_col = df[response]
-    resp_string_check = isinstance(response_col.values, str)
+
+    # Replace NAs with 0s
+    response_col.fillna(0, inplace=True)
+
+    resp_string_check = is_string_dtype(response_col)
     resp_unique_ratio = len(np.unique(response_col.values)) / len(response_col.values)
 
     if resp_string_check or resp_unique_ratio < 0.05:
@@ -145,9 +150,12 @@ def predictor_processing(
 
     for pred_name, pred_data in predicts_col.iteritems():
 
+        # Replace NAs with 0s
+        pred_data.fillna(0, inplace=True)
+
         # Decide cat or cont
         ##########
-        pred_string_check = isinstance(pred_data, str)
+        pred_string_check = is_string_dtype(pred_data)
         pred_unique_ratio = len(pred_data.unique()) / len(pred_data)
         if pred_string_check or pred_unique_ratio < 0.05:
             pred_type = "Categorical"
@@ -157,7 +165,7 @@ def predictor_processing(
             pred_data, pred_labels = pd.factorize(pred_data)
 
             pred_data = pd.DataFrame(pred_data, columns=[pred_name])
-            pred_data_uncoded = df[pred_name]
+            pred_data_uncoded = df[pred_name].fillna(0, inplace=True)
 
         else:
             pred_type = "Continuous"
@@ -400,7 +408,7 @@ def pred_processing_two_way(response, predicts_col, bin_n, response_col, resp_me
 
         # Decide cat or cont
         ##########
-        pred_string_check = isinstance(pred_data_1, str)
+        pred_string_check = is_string_dtype(pred_data_1)
         pred_unique_ratio = len(pred_data_1.unique()) / len(pred_data_1)
         if pred_string_check or pred_unique_ratio < 0.05:
             pred_type_1 = "Categorical"
@@ -416,7 +424,7 @@ def pred_processing_two_way(response, predicts_col, bin_n, response_col, resp_me
 
         # Decide cat or cont
         ##########
-        pred_string_check = isinstance(pred_data_2, str)
+        pred_string_check = is_string_dtype(pred_data_2)
         pred_unique_ratio = len(pred_data_2.unique()) / len(pred_data_2)
         if pred_string_check or pred_unique_ratio < 0.05:
             pred_type_2 = "Categorical"
@@ -517,8 +525,13 @@ def pred_processing_two_way(response, predicts_col, bin_n, response_col, resp_me
         )
         msd_w_group = binned_means_total["mean_sq_diff_w"].sum()
 
-        fig_dmr_file_save = f"./midterm_plots/{pred_name_1}_{pred_name_2}_dmr.html"
-        fig_dmr_file_open = f"./{pred_name_1}_{pred_name_2}_dmr.html"
+        pred_name_1_html = pred_name_1.replace(" ", "")
+        pred_name_2_html = pred_name_2.replace(" ", "")
+
+        fig_dmr_file_save = (
+            f"./midterm_plots/{pred_name_1_html}_{pred_name_2_html}_dmr.html"
+        )
+        fig_dmr_file_open = f"./{pred_name_1_html}_{pred_name_2_html}_dmr.html"
         fig_dmr.write_html(file=fig_dmr_file_save, include_plotlyjs="cdn")
         fig_dmr_link = (
             "<a target='blank' href=" + fig_dmr_file_open + "><div>Plot</div></a>"
@@ -526,8 +539,6 @@ def pred_processing_two_way(response, predicts_col, bin_n, response_col, resp_me
 
         # Add in relationship plot links
         response_html = response.replace(" ", "")
-        pred_name_1_html = pred_name_1.replace(" ", "")
-        pred_name_2_html = pred_name_2.replace(" ", "")
 
         relate_file_open_1 = f"./{response_html}_{pred_name_1_html}_relate.html"
         relate_link_1 = (
