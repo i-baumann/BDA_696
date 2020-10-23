@@ -13,8 +13,32 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
         xdg-open ./midterm_plots/results_resp_x_pred.html
         xdg-open ./midterm_plots/results_brute_force.html
         xdg-open ./midterm_plots/results_pred_corr.html
+        if [ -e ./midterm_plots/cat_cat_matrix.html ]
+          then
+          xdg-open ./midterm_plots/cat_cat_matrix.html
+        fi
+        if [ -e ./midterm_plots/cont_cont_matrix.html ]
+          then
+          xdg-open ./midterm_plots/cont_cont_matrix.html
+        fi
+        if [ -e ./midterm_plots/cat_cont_matrix.html ]
+          then
+          xdg-open ./midterm_plots/cat_cont_matrix.html
+        fi
 elif [[ "$OSTYPE" == "darwin"* ]]; then
         open ./midterm_plots/results_resp_x_pred.html
         open ./midterm_plots/results_brute_force.html
         open ./midterm_plots/results_pred_corr.html
+        if [ -e ./midterm_plots/cat_cat_matrix.html ]
+          then
+          open ./midterm_plots/cat_cat_matrix.html
+        fi
+        if [ -e ./midterm_plots/cont_cont_matrix.html ]
+          then
+          open ./midterm_plots/cont_cont_matrix.html
+        fi
+        if [ -e ./midterm_plots/cat_cont_matrix.html ]
+          then
+          open ./midterm_plots/cat_cont_matrix.html
+        fi
 fi

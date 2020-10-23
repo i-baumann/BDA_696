@@ -36,15 +36,22 @@ def load():
     predicts = []
     pred_check = False
 
-    while predicts not in col_names and pred_check is False:
+    while pred_check is False and predicts != ["All"]:
         predicts = input(
             "\nEnter predictor variables (comma-separated) or type All for all variables:\n"
         ).split(", ")
-        pred_check = all(item in col_names for item in predicts)
-    # if predicts == "All":
-    # remove = col_names.index(response)
-    # predicts = np.delete(col_names, remove)
+        if predicts != ["All"]:
+            pred_check = all(item in col_names for item in predicts)
+        elif predicts == ["All"]:
+            pred_check = True
     else:
+        pass
+
+    if predicts == ["All"]:
+        remove = col_names.index(response)
+        predicts = np.delete(col_names, remove)
+    else:
+        predicts = np.unique(predicts)
         pass
 
     return df, response, predicts
@@ -94,9 +101,9 @@ def response_processing(df, response):
 
     if resp_type == "Categorical":
         print(
-            """This script uses Plotly to generate plots, which does not support logistic regression trendlines.
-            Plots will reflect linear probability models, not logit regressions."""
+            "\nThis script uses Plotly to generate plots, which does not support logistic regression trendlines."
         )
+        print("Plots will reflect linear probability models, not logit regressions.\n")
 
     return response_col, resp_type, resp_mean, response_col_uncoded
 
@@ -154,7 +161,6 @@ def predictor_processing(
 
         else:
             pred_type = "Continuous"
-            # pred_data = pred_data.to_frame()
 
         # Bind response and predictor together again
         df_c = pd.concat([response_col, pred_data], axis=1)
@@ -342,6 +348,10 @@ def predictor_processing(
             }
         )
 
+    results_resp_x_pred = results_resp_x_pred.sort_values(
+        ["Correlation"], ascending=False
+    )
+
     return pred_proc, results_resp_x_pred, predicts_col, bin_n
 
 
@@ -359,7 +369,7 @@ def pred_processing_two_way(response, predicts_col, bin_n, response_col, resp_me
         "Predictor 2 Type",
         "DMR Unweighted",
         "DMR Weighted",
-        "Plot",
+        "DMR Weighted Plot",
     ]
     results_brute_force = pd.DataFrame(
         columns=results_brute_force_cols, index=combs_len
@@ -371,7 +381,9 @@ def pred_processing_two_way(response, predicts_col, bin_n, response_col, resp_me
         "Predictor 1",
         "Predictor 2",
         "Predictor 1 Type",
+        "Resp/Pred 1 Plot",
         "Predictor 2 Type",
+        "Resp/Pred 2 Plot",
         "Correlation",
     ]
     results_pred_corr = pd.DataFrame(columns=results_pred_corr_cols, index=combs_len)
@@ -512,6 +524,21 @@ def pred_processing_two_way(response, predicts_col, bin_n, response_col, resp_me
             "<a target='blank' href=" + fig_dmr_file_open + "><div>Plot</div></a>"
         )
 
+        # Add in relationship plot links
+        response_html = response.replace(" ", "")
+        pred_name_1_html = pred_name_1.replace(" ", "")
+        pred_name_2_html = pred_name_2.replace(" ", "")
+
+        relate_file_open_1 = f"./{response_html}_{pred_name_1_html}_relate.html"
+        relate_link_1 = (
+            "<a target='blank' href=" + relate_file_open_1 + "><div>Plot</div></a>"
+        )
+
+        relate_file_open_2 = f"./{response_html}_{pred_name_2_html}_relate.html"
+        relate_link_2 = (
+            "<a target='blank' href=" + relate_file_open_2 + "><div>Plot</div></a>"
+        )
+
         results_brute_force.loc[comb_pos] = pd.Series(
             {
                 "Response": response,
@@ -521,7 +548,7 @@ def pred_processing_two_way(response, predicts_col, bin_n, response_col, resp_me
                 "Predictor 2 Type": pred_type_2,
                 "DMR Unweighted": msd_uw_group,
                 "DMR Weighted": msd_w_group,
-                "Plot": fig_dmr_link,
+                "DMR Weighted Plot": fig_dmr_link,
             }
         )
 
@@ -531,7 +558,9 @@ def pred_processing_two_way(response, predicts_col, bin_n, response_col, resp_me
                 "Predictor 1": pred_name_1,
                 "Predictor 2": pred_name_2,
                 "Predictor 1 Type": pred_type_1,
+                "Resp/Pred 1 Plot": relate_link_1,
                 "Predictor 2 Type": pred_type_2,
+                "Resp/Pred 2 Plot": relate_link_2,
                 "Correlation": corr,
             }
         )
@@ -576,12 +605,15 @@ def corr_matrix(results_pred_corr, predicts_col):
 
             corr_cont_matrix = var_df_1.corr()
 
-            fig = px.imshow(
+            cont_cont_matrix = px.imshow(
                 corr_cont_matrix,
                 labels=dict(color="Pearson correlation:"),
-                title="Correlation Matrix: Continuous vs Continuous",
+                title=f"Correlation Matrix: {var_type_1} vs {var_type_2}",
             )
-            fig.show()
+            cont_cont_matrix_save = f"./midterm_plots/cont_cont_matrix.html"
+            cont_cont_matrix.write_html(
+                file=cont_cont_matrix_save, include_plotlyjs="cdn"
+            )
 
         elif var_type_1 == var_type_2 == "Categorical":
 
@@ -622,12 +654,13 @@ def corr_matrix(results_pred_corr, predicts_col):
                 index="Predictor 1", columns="Predictor 2", values="Correlation"
             )
 
-            fig = px.imshow(
+            cat_cat_matrix = px.imshow(
                 corr_cat_matrix,
-                labels=dict(color="Cramer's V:"),
-                title="Correlation Matrix: Categorical vs Categorical",
+                labels=dict(color="Cramer's V"),
+                title=f"Correlation Matrix: {var_type_1} vs {var_type_2}",
             )
-            fig.show()
+            cat_cat_matrix_save = f"./midterm_plots/cat_cat_matrix.html"
+            cat_cat_matrix.write_html(file=cat_cat_matrix_save, include_plotlyjs="cdn")
 
         elif (
             var_type_1 == "Categorical"
@@ -681,12 +714,15 @@ def corr_matrix(results_pred_corr, predicts_col):
                 index="Predictor 1", columns="Predictor 2", values="Correlation"
             )
 
-            fig = px.imshow(
+            cat_cont_matrix = px.imshow(
                 corr_cat_cont_matrix,
-                labels=dict(color="Correlation Ratio:"),
-                title="Correlation Matrix: Categorical vs Continuous",
+                labels=dict(color="Correlation Ratio"),
+                title=f"Correlation Matrix: {var_type_1} vs {var_type_2}",
             )
-            fig.show()
+            cat_cont_matrix_save = f"./midterm_plots/cat_cont_matrix.html"
+            cat_cont_matrix.write_html(
+                file=cat_cont_matrix_save, include_plotlyjs="cdn"
+            )
 
     return
 
