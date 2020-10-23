@@ -1,13 +1,13 @@
 import os.path
 import sys
-from itertools import combinations
+from itertools import combinations, combinations_with_replacement, product
 
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import statsmodels.api as sm
-from cat_correlation import cat_correlation
+from cat_correlation import cat_cont_correlation_ratio, cat_correlation
 from plotly.subplots import make_subplots
 from scipy import stats
 from sklearn.metrics import confusion_matrix
@@ -35,9 +35,15 @@ def load():
 
     predicts = []
     pred_check = False
+
     while predicts not in col_names and pred_check is False:
-        predicts = input("\nEnter predictor variables (comma-separated):\n").split(", ")
+        predicts = input(
+            "\nEnter predictor variables (comma-separated) or type All for all variables:\n"
+        ).split(", ")
         pred_check = all(item in col_names for item in predicts)
+    # if predicts == "All":
+    # remove = col_names.index(response)
+    # predicts = np.delete(col_names, remove)
     else:
         pass
 
@@ -168,21 +174,6 @@ def predictor_processing(
 
             corr = cat_correlation(df_c[pred_name], df_c[response])
 
-            ###############################################################
-            # Take out the below and use for pred combination stuff later #
-            ###############################################################
-            # corr_matrix = df_c.corr(method="pearson")
-            # print(corr)
-            # print(corr_matrix)
-
-            # fig_corr = px.imshow(corr_matrix)
-
-            # fig_corr.update_layout(
-            #    title=f"Correlation Between {response} and {pred_name}",
-            #    xaxis_title=pred_name,
-            #    yaxis_title=response,
-            # )
-
         elif resp_type == "Categorical" and pred_type == "Continuous":
 
             fig_relate = px.histogram(df_c, x=pred_name, color=response_col_uncoded)
@@ -203,7 +194,7 @@ def predictor_processing(
                 yaxis_title="count",
             )
 
-            corr = stats.pointbiserialr(df_c[pred_name], df_c[response])[0]
+            corr = cat_cont_correlation_ratio(df_c[pred_name], df_c[response])
 
         elif resp_type == "Continuous" and pred_type == "Continuous":
 
@@ -231,17 +222,6 @@ def predictor_processing(
             + pred_type
             + "</div></a>"
         )
-
-        # corr_file_save = f"./midterm_plots/{response_html}_{pred_name_html}_corr.html"
-        # corr_file_open = f"./{response_html}_{pred_name_html}_corr.html"
-        # fig_corr.write_html(file=corr_file_save, include_plotlyjs="cdn")
-        # corr_link = (
-        #        "<a target='blank' href="
-        #        + corr_file_open
-        #        + "><div>"
-        #        + str(corr)
-        #        + "</div></a>"
-        # )
 
         # Regression
         ##########
@@ -451,7 +431,13 @@ def pred_processing_two_way(response, predicts_col, bin_n, response_col, resp_me
             and pred_type_2 == "Categorical"
         ):
 
-            corr = stats.pointbiserialr(df_p[pred_name_1], df_p[pred_name_2])[0]
+            if pred_type_1 == "Categorical":
+
+                corr = cat_cont_correlation_ratio(df_p[pred_name_1], df_p[pred_name_2])
+
+            elif pred_type_2 == "Categorical":
+
+                corr = cat_cont_correlation_ratio(df_p[pred_name_2], df_p[pred_name_1])
 
         elif pred_type_1 == "Continuous" and pred_type_2 == "Continuous":
 
@@ -561,6 +547,150 @@ def pred_processing_two_way(response, predicts_col, bin_n, response_col, resp_me
     return results_brute_force, results_pred_corr
 
 
+def corr_matrix(results_pred_corr, predicts_col):
+
+    types_df_1 = results_pred_corr[["Predictor 1", "Predictor 1 Type"]]
+    types_df_1.columns = ["Predictor", "Type"]
+
+    types_df_2 = results_pred_corr[["Predictor 2", "Predictor 2 Type"]]
+    types_df_2.columns = ["Predictor", "Type"]
+
+    types_df = types_df_1.append(types_df_2)
+
+    types = np.unique(types_df["Type"])
+
+    type_combs = list(combinations_with_replacement(types, 2))
+
+    for t_comb in type_combs:
+
+        var_type_1 = t_comb[0]
+        var_type_2 = t_comb[1]
+
+        var_names_1 = types_df.loc[types_df["Type"] == var_type_1, "Predictor"].unique()
+        var_names_2 = types_df.loc[types_df["Type"] == var_type_2, "Predictor"].unique()
+
+        var_df_1 = predicts_col[var_names_1]
+        var_df_2 = predicts_col[var_names_2]
+
+        if var_type_1 == var_type_2 == "Continuous":
+
+            corr_cont_matrix = var_df_1.corr()
+
+            fig = px.imshow(
+                corr_cont_matrix,
+                labels=dict(color="Pearson correlation:"),
+                title="Correlation Matrix: Continuous vs Continuous",
+            )
+            fig.show()
+
+        elif var_type_1 == var_type_2 == "Categorical":
+
+            var_factorized = var_df_1.apply(lambda x: pd.factorize(x)[0])
+
+            cat_combs = list(product(var_factorized.columns, repeat=2))
+            cat_combs_len = range(0, len(cat_combs))
+
+            cat_corr_cols = [
+                "Predictor 1",
+                "Predictor 2",
+                "Correlation",
+            ]
+            cat_corr = pd.DataFrame(columns=cat_corr_cols, index=cat_combs_len)
+
+            cat_pos = 0
+
+            for cat_comb in cat_combs:
+
+                cat_name_1 = cat_comb[0]
+                cat_name_2 = cat_comb[1]
+
+                corr = cat_correlation(
+                    var_factorized[cat_name_1], var_factorized[cat_name_2]
+                )
+
+                cat_corr.loc[cat_pos] = pd.Series(
+                    {
+                        "Predictor 1": cat_name_1,
+                        "Predictor 2": cat_name_2,
+                        "Correlation": corr,
+                    }
+                )
+
+                cat_pos += 1
+
+            corr_cat_matrix = cat_corr.pivot(
+                index="Predictor 1", columns="Predictor 2", values="Correlation"
+            )
+
+            fig = px.imshow(
+                corr_cat_matrix,
+                labels=dict(color="Cramer's V:"),
+                title="Correlation Matrix: Categorical vs Categorical",
+            )
+            fig.show()
+
+        elif (
+            var_type_1 == "Categorical"
+            and var_type_2 == "Continuous"
+            or var_type_1 == "Continuous"
+            and var_type_2 == "Categorical"
+        ):
+
+            cat_cont_combs = list(product(var_names_1, var_names_2))
+            cat_cont_combs_len = range(0, len(cat_cont_combs))
+
+            cat_cont_corr_cols = [
+                "Predictor 1",
+                "Predictor 2",
+                "Correlation",
+            ]
+            cat_cont_corr = pd.DataFrame(
+                columns=cat_cont_corr_cols, index=cat_cont_combs_len
+            )
+
+            cat_cont_pos = 0
+
+            for cat_cont_comb in cat_cont_combs:
+
+                cat_cont_name_1 = cat_cont_comb[0]
+                cat_cont_name_2 = cat_cont_comb[1]
+
+                if var_type_1 == "Categorical":
+
+                    corr = cat_cont_correlation_ratio(
+                        var_df_1[cat_cont_name_1], var_df_2[cat_cont_name_2]
+                    )
+
+                elif var_type_2 == "Categorical":
+
+                    corr = cat_cont_correlation_ratio(
+                        var_df_2[cat_cont_name_2], var_df_1[cat_cont_name_1]
+                    )
+
+                cat_cont_corr.loc[cat_cont_pos] = pd.Series(
+                    {
+                        "Predictor 1": cat_cont_name_1,
+                        "Predictor 2": cat_cont_name_2,
+                        "Correlation": corr,
+                    }
+                )
+
+                cat_cont_pos += 1
+
+            corr_cat_cont_matrix = cat_cont_corr.pivot(
+                index="Predictor 1", columns="Predictor 2", values="Correlation"
+            )
+
+            fig = px.imshow(
+                corr_cat_cont_matrix,
+                labels=dict(color="Correlation Ratio:"),
+                title="Correlation Matrix: Categorical vs Continuous",
+            )
+            fig.show()
+
+    return
+
+
 def results_table(results_resp_x_pred, results_brute_force, results_pred_corr):
 
     with open("./midterm_plots/results_resp_x_pred.html", "w") as html_open:
@@ -587,6 +717,7 @@ def main():
     results_brute_force, results_pred_corr = pred_processing_two_way(
         response, predicts_col, bin_n, response_col, resp_mean
     )
+    corr_matrix(results_pred_corr, predicts_col)
     results_table(results_resp_x_pred, results_brute_force, results_pred_corr)
     return
 
