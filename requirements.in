@@ -3,3 +3,5 @@ pandas
 plotly
 scikit-learn
 statsmodels
+pyspark
+pyspark-stubs
