@@ -20,8 +20,8 @@ repos:
     rev: 3.7.9
     hooks:
       - id: flake8
-  - repo: https://github.com/prettier/prettier
-    rev: "2.0.5" # Use the sha or tag you want to point at
+  - repo: https://github.com/prettier/pre-commit
+    rev: "v2.0.5" # Use the sha or tag you want to point at
     hooks:
       - id: prettier
   - repo: git@github.com:Yelp/detect-secrets
