@@ -1,0 +1,11 @@
+FROM alpine:latest
+
+COPY ./baseball.sql /data/baseball.sql
+COPY ./running_avg.sql /scripts/running_avg.sql
+COPY ./client.sh /scripts/client.sh
+
+RUN apk update \
+    && apk add mysql-client \
+    && chmod +x /scripts/client.sh
+
+CMD ./scripts/client.sh
