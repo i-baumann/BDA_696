@@ -32,12 +32,3 @@ CREATE TABLE rolling_avg_day_faster
             WHERE atBat > 0
     GROUP BY game_date, batter
     ORDER BY game_date;
-
-SELECT * 
-FROM rolling_avg_day_faster 
-INTO OUTFILE '/data/rolling_avg.csv';
-
-SELECT *
-FROM rolling_avg_day_faster 
-WHERE game_id = 12560 
-INTO OUTFILE '/data/rolling_avg_12560.csv';
