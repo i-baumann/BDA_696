@@ -1,0 +1,22 @@
+version: "3.8"
+services:
+  baseball_db:
+    image: mysql:8.0.16 #ghcr.io/linuxserver/mariadb
+    container_name: baseball_db
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - MYSQL_ALLOW_EMPTY_PASSWORD=TRUE # pragma: allowlist secret
+      - secure-file-priv=""
+      - TZ=America/Los_Angeles
+      - MYSQL_DATABASE=baseball
+      - SQL_CLIENT_PORT=3308
+    command: --performance-schema --secure-file-priv="" --default-authentication-plugin=mysql_native_password
+    volumes:
+      - ./:/var/lib/mysql
+    ports:
+      - 3308:3308
+    expose:
+      - "3308"
+    hostname: baseball_db
+    restart: unless-stopped
