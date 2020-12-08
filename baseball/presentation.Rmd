@@ -373,7 +373,7 @@ Most missing data due to 30/100 day averaging
 
 ### Continuous variables
 
-- Data arguably missing at random, so fill with mean
+- Data arguably missing at random, so fill with median
 
 ---
 
@@ -385,15 +385,15 @@ background-size: cover
 
 ---
 
-.center[<iframe src="midterm_plots/results_resp_x_pred.html" width="95%" height="600" id="igraph" scrolling="yes" seamless="seamless" frameBorder="0"> </iframe>]
+.center[<iframe src="results_resp_x_pred.html" width="95%" height="600" id="igraph" scrolling="yes" seamless="seamless" frameBorder="0"> </iframe>]
 
 ---
 
-.center[<iframe src="midterm_plots/home_win_diff_start_k_100_diff.html" width="80%" height="600" id="igraph" scrolling="no" seamless="seamless" frameBorder="0"> </iframe>]
+.center[<iframe src="home_win_diff_start_k_100_diff.html" width="80%" height="600" id="igraph" scrolling="no" seamless="seamless" frameBorder="0"> </iframe>]
 
 ---
 
-.center[<iframe src="midterm_plots/diff_start_k_100_diff_start_groundouts_100_dmr.html" width="80%" height="600" id="igraph" scrolling="no" seamless="seamless" frameBorder="0"> </iframe>]
+.center[<iframe src="diff_start_k_100_diff_start_groundouts_100_dmr.html" width="80%" height="600" id="igraph" scrolling="no" seamless="seamless" frameBorder="0"> </iframe>]
 
 ---
 
