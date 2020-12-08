@@ -72,21 +72,41 @@ CREATE TABLE pythag_temp
             OVER (PARTITION BY team_id
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '31' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS runs_30,
+    AVG(CASE WHEN tr.home_away = "H" then bx.away_runs
+        ELSE bx.home_runs END)
+            OVER (PARTITION BY team_id
+            ORDER BY DATE(game_date)
+            RANGE BETWEEN INTERVAL '31' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS runs_allowed_30,
     AVG(CASE WHEN tr.home_away = "H" then bx.home_runs
         ELSE bx.away_runs END)
             OVER (PARTITION BY team_id
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '101' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS runs_100,
+    AVG(CASE WHEN tr.home_away = "H" then bx.away_runs
+        ELSE bx.home_runs END)
+            OVER (PARTITION BY team_id
+            ORDER BY DATE(game_date)
+            RANGE BETWEEN INTERVAL '101' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS runs_allowed_100,
     AVG(CASE WHEN tr.home_away = "H" then bx.home_hits
         ELSE bx.away_hits END)
             OVER (PARTITION BY team_id
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '31' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS hits_30,
+    AVG(CASE WHEN tr.home_away = "H" then bx.away_hits
+        ELSE bx.home_hits END)
+            OVER (PARTITION BY team_id
+            ORDER BY DATE(game_date)
+            RANGE BETWEEN INTERVAL '31' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS hits_allowed_30,
     AVG(CASE WHEN tr.home_away = "H" then bx.home_hits
         ELSE bx.away_hits END)
             OVER (PARTITION BY team_id
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '101' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS hits_100,
+    AVG(CASE WHEN tr.home_away = "H" then bx.away_hits
+        ELSE bx.home_hits END)
+            OVER (PARTITION BY team_id
+            ORDER BY DATE(game_date)
+            RANGE BETWEEN INTERVAL '101' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS hits_allowed_100,
     AVG(CASE WHEN tr.home_away = "H" then bx.home_errors
         ELSE bx.away_errors END)
             OVER (PARTITION BY team_id
@@ -97,50 +117,6 @@ CREATE TABLE pythag_temp
             OVER (PARTITION BY team_id
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '101' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS errors_100,
-    AVG(CASE WHEN tr.home_away = "H" then bx.away_runs
-                ELSE bx.home_runs END)
-            OVER (PARTITION BY team_id
-            ORDER BY DATE(game_date)
-            RANGE BETWEEN INTERVAL '31' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING)
-            /
-            AVG(CASE WHEN tr.home_away = "H" then bx.home_runs
-                ELSE bx.away_runs END)
-            OVER (PARTITION BY team_id 
-            ORDER BY DATE(game_date)
-            RANGE BETWEEN INTERVAL '31' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS runs_runs_allowed_30,
-    AVG(CASE WHEN tr.home_away = "H" then bx.away_runs
-                ELSE bx.home_runs END)
-            OVER (PARTITION BY team_id
-            ORDER BY DATE(game_date)
-            RANGE BETWEEN INTERVAL '101' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING)
-            /
-            AVG(CASE WHEN tr.home_away = "H" then bx.home_runs
-                ELSE bx.away_runs END)
-            OVER (PARTITION BY team_id 
-            ORDER BY DATE(game_date)
-            RANGE BETWEEN INTERVAL '101' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS runs_runs_allowed_100,
-    AVG(CASE WHEN tr.home_away = "H" then bx.away_hits
-                ELSE bx.home_hits END)
-            OVER (PARTITION BY team_id
-            ORDER BY DATE(game_date)
-            RANGE BETWEEN INTERVAL '31' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING)
-            /
-            AVG(CASE WHEN tr.home_away = "H" then bx.home_hits
-                ELSE bx.away_hits END)
-            OVER (PARTITION BY team_id 
-            ORDER BY DATE(game_date)
-            RANGE BETWEEN INTERVAL '31' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS hits_hits_allowed_30,
-    AVG(CASE WHEN tr.home_away = "H" then bx.away_hits
-                ELSE bx.home_hits END)
-            OVER (PARTITION BY team_id
-            ORDER BY DATE(game_date)
-            RANGE BETWEEN INTERVAL '101' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING)
-            /
-            AVG(CASE WHEN tr.home_away = "H" then bx.home_hits
-                ELSE bx.away_hits END)
-            OVER (PARTITION BY team_id 
-            ORDER BY DATE(game_date)
-            RANGE BETWEEN INTERVAL '101' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS hits_hits_allowed_100,
     SUM(CASE WHEN tr.home_away = "H" THEN 1 ELSE 0 END)
             OVER (PARTITION BY team_id 
             ORDER BY DATE(game_date)
@@ -159,11 +135,19 @@ FROM team_results_fix tr
 
 ALTER TABLE pythag_temp
 ADD pythag_30 FLOAT(4,3),
-ADD pythag_100 FLOAT(4,3);
+ADD pythag_100 FLOAT(4,3),
+ADD runs_runs_allowed_30 FLOAT(4,3),
+ADD runs_runs_allowed_100 FLOAT(4,3),
+ADD hits_hits_allowed_30 FLOAT(4,3),
+ADD hits_hits_allowed_100 FLOAT(4,3);
 
 UPDATE pythag_temp pt
-SET pt.pythag_30 = 1 / (1 + POWER(pt.runs_runs_allowed_30, 2)),
-    pt.pythag_100 = 1 / (1 + POWER(pt.runs_runs_allowed_100, 2));
+SET pt.pythag_30 = POW(pt.runs_30, 1.83) / (POW(pt.runs_30, 1.83) + POW(pt.runs_allowed_30, 1.83)),
+    pt.pythag_100 = POW(pt.runs_100, 1.83) / (POW(pt.runs_100, 1.83) + POW(pt.runs_allowed_100, 1.83)),
+    pt.runs_runs_allowed_30 = pt.runs_30 / pt.runs_allowed_30,
+    pt.runs_runs_allowed_100 = pt.runs_100 / pt.runs_allowed_100,
+    pt.hits_hits_allowed_30 = pt.hits_30 / pt.hits_allowed_30,
+    pt.hits_hits_allowed_100 = pt.hits_100 / pt.hits_allowed_100;
 
 CREATE UNIQUE INDEX pythag_game_team ON pythag_temp (game_id, team_id);
 
@@ -230,9 +214,10 @@ ADD gametime numeric;
 UPDATE boxscore_new bxn
 SET bxn.month = MONTH(DATE(game_date)),
     bxn.weekday = DAYOFWEEK(DATE(game_date)),
-    bxn.gametime = CASE WHEN TIME(game_date) BETWEEN '08:00:00' AND '12:00:00' THEN 1
-        WHEN TIME(game_date) BETWEEN '12:00:00' AND '16:00:00' THEN 2
-        WHEN TIME(game_date) BETWEEN '16:00:00' AND '24:00:00' THEN 3 END;
+    bxn.gametime = CASE WHEN TIME(game_date) BETWEEN '11:00:00' AND '14:00:00' THEN "early"
+        WHEN TIME(game_date) BETWEEN '14:00:00' AND '16:00:00' THEN "afternoon"
+        WHEN TIME(game_date) BETWEEN '16:00:00' AND '18:00:00' THEN "evening" 
+        WHEN TIME(game_date) BETWEEN '18:00:00' AND '24:00:00' THEN "night" END;
 
 # Time zones
 
@@ -318,7 +303,44 @@ ADD tz_categories VARCHAR(5);
 UPDATE boxscore_new bxn
 SET bxn.tz_categories = CONCAT(bxn.home_tz, '-', bxn.away_tz); 
 
-# Team-aggregated basic stats
+### Team-aggregated basic stats
+
+# Fix stolen bases and caught steals
+
+DROP TABLE IF EXISTS fix_steals;
+
+CREATE TABLE fix_steals
+    SELECT * FROM
+        (SELECT
+            g.game_id,
+            g.away_team_id AS team_id,
+            SUM(CASE WHEN i.des = "Stolen Base 2B" THEN 1 ELSE 0 END) AS stolenBase2B,
+            SUM(CASE WHEN i.des = "Stolen Base 3B" THEN 1 ELSE 0 END) AS stolenBase3B,
+            SUM(CASE WHEN i.des = "Stolen Base Home" THEN 1 ELSE 0 END) AS stolenBaseHome,
+            SUM(CASE WHEN i.des = "Stolen Base 2B" THEN 1 ELSE 0 END) AS caughtStealing2B,
+            SUM(CASE WHEN i.des = "Stolen Base 3B" THEN 1 ELSE 0 END) AS caughtStealing3B,
+            SUM(CASE WHEN i.des = "Stolen Base Home" THEN 1 ELSE 0 END) AS caughtStealingHome
+        FROM inning i
+        JOIN game g ON g.game_id = i.game_id
+        WHERE i.half = 0 AND i.entry = "runner"
+        GROUP BY g.game_id, g.away_team_id
+    UNION
+        SELECT
+            g.game_id,
+            g.home_team_id AS team_id,
+             SUM(CASE WHEN i.des = "Stolen Base 2B" THEN 1 ELSE 0 END) AS stolenBase2B,
+            SUM(CASE WHEN i.des = "Stolen Base 3B" THEN 1 ELSE 0 END) AS stolenBase3B,
+            SUM(CASE WHEN i.des = "Stolen Base Home" THEN 1 ELSE 0 END) AS stolenBaseHome,
+            SUM(CASE WHEN i.des = "Stolen Base 2B" THEN 1 ELSE 0 END) AS caughtStealing2B,
+            SUM(CASE WHEN i.des = "Stolen Base 3B" THEN 1 ELSE 0 END) AS caughtStealing3B,
+            SUM(CASE WHEN i.des = "Stolen Base Home" THEN 1 ELSE 0 END) AS caughtStealingHome
+        FROM inning i
+        JOIN game g ON g.game_id = i.game_id
+        WHERE i.half = 1 AND i.entry = "runner"
+        GROUP BY g.game_id, g.home_team_id) AS steal_table
+    ORDER BY game_id;
+
+CREATE UNIQUE INDEX fs_game_team ON fix_steals (game_id, team_id);
 
 CREATE UNIQUE INDEX btc_game_team ON team_batting_counts (game_id, team_id);
 
@@ -361,19 +383,19 @@ CREATE TABLE team_off_stats
             OVER (PARTITION BY btc.team_id
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '101' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS bat_avg_bases_100,
-        AVG(btc.caughtStealing2B) + AVG(btc.caughtStealing3B) + AVG(btc.caughtStealingHome)
+        AVG(fs.caughtStealing2B) + AVG(fs.caughtStealing3B) + AVG(fs.caughtStealingHome)
             OVER (PARTITION BY btc.team_id
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '31' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS bat_caught_30,
-        AVG(btc.caughtStealing2B) + AVG(btc.caughtStealing3B) + AVG(btc.caughtStealingHome)
+        AVG(fs.caughtStealing2B) + AVG(fs.caughtStealing3B) + AVG(fs.caughtStealingHome)
             OVER (PARTITION BY btc.team_id
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '101' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS bat_caught_100,
-        AVG(btc.stolenBase2B) + AVG(btc.stolenBase3B) + AVG(btc.stolenBaseHome)
+        AVG(fs.stolenBase2B) + AVG(fs.stolenBase3B) + AVG(fs.stolenBaseHome)
             OVER (PARTITION BY btc.team_id
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '31' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS bat_steals_30,
-        AVG(btc.stolenBase2B) + AVG(btc.stolenBase3B) + AVG(btc.stolenBaseHome)
+        AVG(fs.stolenBase2B) + AVG(fs.stolenBase3B) + AVG(fs.stolenBaseHome)
             OVER (PARTITION BY btc.team_id
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '101' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS bat_steals_100,
@@ -507,6 +529,7 @@ CREATE TABLE team_off_stats
             RANGE BETWEEN INTERVAL '101' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS bat_walks_100
     FROM team_batting_counts btc
         JOIN game g ON btc.game_id = g.game_id
+        JOIN fix_steals fs ON fs.game_id = g.game_id AND fs.team_id = btc.team_id
         WHERE g.type = "R"
         GROUP BY btc.game_id, btc.team_id
         ORDER BY btc.game_id;
@@ -893,11 +916,11 @@ UPDATE pc_start pcs
 SET start_un_era_30 = 9 * pcs.start_unearned_runs_30 / pcs.start_innings_pitched_30,
     start_un_era_100 = 9 * pcs.start_unearned_runs_100 / pcs.start_innings_pitched_100,
     start_k_rate_30 = pcs.start_k_30 / pcs.start_plate_apps_30,
-    start_k_rate_30 = pcs.start_k_100 / pcs.start_plate_apps_100,
+    start_k_rate_100 = pcs.start_k_100 / pcs.start_plate_apps_100,
     start_k_per_9_30 = pcs.start_k_30 * 9 / pcs.start_innings_pitched_30,
     start_k_per_9_100 = pcs.start_k_100 * 9 / pcs.start_innings_pitched_100,
     start_walk_rate_30 = pcs.start_walks_30 / pcs.start_plate_apps_30,
-    start_walk_rate_30 = pcs.start_walks_100 / pcs.start_plate_apps_100,
+    start_walk_rate_100 = pcs.start_walks_100 / pcs.start_plate_apps_100,
     start_walk_per_9_30 = pcs.start_walks_30 * 9 / pcs.start_innings_pitched_30,
     start_walk_per_9_100 = pcs.start_walks_100 * 9 / pcs.start_innings_pitched_100,
     start_k_walk_ratio_30 = pcs.start_k_30 / pcs.start_walks_30,
@@ -1171,11 +1194,11 @@ UPDATE pc_pen pcp
 SET pen_un_era_30 = 9 * pcp.pen_unearned_runs_30 / pcp.pen_innings_pitched_30,
     pen_un_era_100 = 9 * pcp.pen_unearned_runs_100 / pcp.pen_innings_pitched_100,
     pen_k_rate_30 = pcp.pen_k_30 / pcp.pen_plate_apps_30,
-    pen_k_rate_30 = pcp.pen_k_100 / pcp.pen_plate_apps_100,
+    pen_k_rate_100 = pcp.pen_k_100 / pcp.pen_plate_apps_100,
     pen_k_per_9_30 = pcp.pen_k_30 * 9 / pcp.pen_innings_pitched_30,
     pen_k_per_9_100 = pcp.pen_k_100 * 9 / pcp.pen_innings_pitched_100,
     pen_walk_rate_30 = pcp.pen_walks_30 / pcp.pen_plate_apps_30,
-    pen_walk_rate_30 = pcp.pen_walks_100 / pcp.pen_plate_apps_100,
+    pen_walk_rate_100 = pcp.pen_walks_100 / pcp.pen_plate_apps_100,
     pen_walk_per_9_30 = pcp.pen_walks_30 * 9 / pcp.pen_innings_pitched_30,
     pen_walk_per_9_100 = pcp.pen_walks_100 * 9 / pcp.pen_innings_pitched_100,
     pen_k_walk_ratio_30 = pcp.pen_k_30 / pcp.pen_walks_30,
@@ -1396,7 +1419,7 @@ DROP TABLE IF EXISTS away_fourth_pos;
 CREATE TABLE away_fourth_pos
     SELECT
         i.game_id,
-        MIN(i.num) + 3 AS away_pos
+        MIN(i.num) + 3 AS home_pos
     FROM inning i
     WHERE i.half = 1
     GROUP BY i.game_id
@@ -1409,14 +1432,16 @@ DROP TABLE IF EXISTS lineup_fix;
 CREATE TABLE lineup_fix
     SELECT
         i.game_id,
-        i.batter AS home_cleanup,
-        i2.batter AS away_cleanup
+        i.batter AS away_cleanup,
+        i2.batter AS home_cleanup
     FROM inning i
     JOIN inning i2 ON i.game_id = i2.game_id
     JOIN away_fourth_pos afp ON i2.game_id = afp.game_id
-    WHERE i.num = 4 AND i2.num = afp.away_pos
+    WHERE i.num = 4 AND i2.num = afp.home_pos
     GROUP BY i.game_id
     ORDER BY i.game_id;
+
+CREATE UNIQUE INDEX lf_game_batters ON lineup_fix (game_id, home_cleanup, away_cleanup);
 
 DROP TABLE IF EXISTS cleanup_score_home;
 
@@ -1424,40 +1449,40 @@ CREATE TABLE cleanup_score_home
     SELECT
         g.game_id,
         DATE(g.local_date) AS game_date,
-        AVG(CASE WHEN i.scores = "T" THEN 1 ELSE 0 END)
-        OVER (PARTITION BY bc.team_id
+        SUM(CASE WHEN i.scores = "T" THEN 1 ELSE 0 END)
+        OVER (PARTITION BY l.home_cleanup
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '31' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) 
         /
-        AVG(CASE WHEN i.scores = "T" THEN 1 ELSE 1 END)
-        OVER (PARTITION BY bc.team_id
+        SUM(CASE WHEN i.scores = "T" THEN 1 ELSE 1 END)
+        OVER (PARTITION BY l.home_cleanup
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '31' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS home_cleanup_rate_30,
-        AVG(CASE WHEN i.scores = "T" THEN 1 ELSE 0 END)
-        OVER (PARTITION BY bc.team_id
+        SUM(CASE WHEN i.scores = "T" THEN 1 ELSE 0 END)
+        OVER (PARTITION BY l.home_cleanup
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '101' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) 
         /
-        AVG(CASE WHEN i.scores = "T" THEN 1 ELSE 1 END)
-        OVER (PARTITION BY bc.team_id
+        SUM(CASE WHEN i.scores = "T" THEN 1 ELSE 1 END)
+        OVER (PARTITION BY l.home_cleanup
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '101' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS home_cleanup_rate_100,
-        AVG(bc.Hit)
-        OVER (PARTITION BY bc.team_id
+        SUM(bc.Hit)
+        OVER (PARTITION BY l.home_cleanup
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '31' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) 
         /
-        AVG(bc.atBat)
-        OVER (PARTITION BY bc.team_id
+        SUM(CASE WHEN bc.atBat > 0 THEN bc.atBat ELSE NULL END)
+        OVER (PARTITION BY l.home_cleanup
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '31' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS home_cleanup_ba_30,
-        AVG(bc.Hit)
-        OVER (PARTITION BY bc.team_id
+        SUM(bc.Hit)
+        OVER (PARTITION BY l.home_cleanup
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '101' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) 
         /
-        AVG(bc.atBat)
-        OVER (PARTITION BY bc.team_id
+        SUM(CASE WHEN bc.atBat > 0 THEN bc.atBat ELSE NULL END)
+        OVER (PARTITION BY l.home_cleanup
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '101' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS home_cleanup_ba_100
     FROM inning i
@@ -1465,7 +1490,7 @@ CREATE TABLE cleanup_score_home
     JOIN lineup_fix l ON g.game_id = l.game_id AND i.batter = l.home_cleanup
     JOIN batter_counts bc ON g.game_id = bc.game_id AND bc.batter = l.home_cleanup
     WHERE g.type = "R" AND i.batter = l.home_cleanup
-    GROUP BY g.game_id
+    GROUP BY g.game_id, l.home_cleanup
     ORDER BY g.game_id;
 
 DROP TABLE IF EXISTS cleanup_score_away;
@@ -1474,40 +1499,40 @@ CREATE TABLE cleanup_score_away
     SELECT
         g.game_id,
         DATE(g.local_date) AS game_date,
-        AVG(CASE WHEN i.scores = "T" THEN 1 ELSE 0 END)
-        OVER (PARTITION BY bc.team_id
+        SUM(CASE WHEN i.scores = "T" THEN 1 ELSE 0 END)
+        OVER (PARTITION BY l.away_cleanup
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '31' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) 
         /
-        AVG(CASE WHEN i.scores = "T" THEN 1 ELSE 1 END)
-        OVER (PARTITION BY bc.team_id
+        SUM(CASE WHEN i.scores = "T" THEN 1 ELSE 1 END)
+        OVER (PARTITION BY l.away_cleanup
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '31' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS away_cleanup_rate_30,
-        AVG(CASE WHEN i.scores = "T" THEN 1 ELSE 0 END)
-        OVER (PARTITION BY bc.team_id
+        SUM(CASE WHEN i.scores = "T" THEN 1 ELSE 0 END)
+        OVER (PARTITION BY l.away_cleanup
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '101' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) 
         /
-        AVG(CASE WHEN i.scores = "T" THEN 1 ELSE 1 END)
-        OVER (PARTITION BY bc.team_id
+        SUM(CASE WHEN i.scores = "T" THEN 1 ELSE 1 END)
+        OVER (PARTITION BY l.away_cleanup
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '101' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS away_cleanup_rate_100,
-        AVG(bc.Hit)
-        OVER (PARTITION BY bc.team_id
+        SUM(bc.Hit)
+        OVER (PARTITION BY l.away_cleanup
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '31' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) 
         /
-        AVG(bc.atBat)
-        OVER (PARTITION BY bc.team_id
+        SUM(CASE WHEN bc.atBat > 0 THEN bc.atBat ELSE NULL END)
+        OVER (PARTITION BY l.away_cleanup
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '31' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS away_cleanup_ba_30,
-        AVG(bc.Hit)
-        OVER (PARTITION BY bc.team_id
+        SUM(bc.Hit)
+        OVER (PARTITION BY l.away_cleanup
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '101' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) 
         /
-        AVG(bc.atBat)
-        OVER (PARTITION BY bc.team_id
+        SUM(CASE WHEN bc.atBat > 0 THEN bc.atBat ELSE NULL END)
+        OVER (PARTITION BY l.away_cleanup
             ORDER BY DATE(game_date)
             RANGE BETWEEN INTERVAL '101' DAY PRECEDING AND INTERVAL '1' DAY PRECEDING) AS away_cleanup_ba_100
     FROM inning i
@@ -1547,8 +1572,6 @@ DROP TABLE IF EXISTS temp;
 
 CREATE TABLE temp
     SELECT
-           "game_date",
-"game_id",
 "away_team",
 "home_team",
 "home_win",
@@ -1776,9 +1799,7 @@ CREATE TABLE temp
 "diff_cleanup_ba_30",
 "diff_cleanup_ba_100"
     UNION ALL
-    SELECT bxn.game_date,
-           bxn.game_id,
-           bxn.away_team,
+    SELECT bxn.away_team,
            bxn.home_team,
            bxn.home_win,
            bxn.temperature,

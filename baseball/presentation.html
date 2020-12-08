@@ -20,7 +20,7 @@ background-size: cover
 
 # BDA 696 Final Presentation
 
-### Isaac Baumann - 2020-12-03
+### Isaac Baumann - 2020-12-08
 
 ---
 
@@ -175,12 +175,22 @@ background-size: cover
 --
 
 .center[
-$$ win\space ratio = \frac{1}{1 + (runs\space allowed / runs\space scored)^2} $$
+$$ win\space ratio = \frac{1}{1 + (runs\space allowed / runs\space scored)^{1.83}} $$
 ]
 
 --
 
 - Represents predicted percentage of games a team *should* have won
+
+--
+
+- If the Angels play 100 games, scoring 400 runs and giving up 300 runs:
+
+--
+
+$$ \frac{1}{1 + (300 / 400)^{1.83}} = .629 $$
+
+ - They _should_ have won ~63% of those games 
 
 --
 
@@ -254,7 +264,7 @@ background-size: cover
 
 class: inverse
 
-## Boring sabermetrics features
+## Sabermetrics features
 
 .pull-left[
 - Team batting
@@ -275,7 +285,7 @@ class: inverse
 
 .pull-right[
 - Pitching (starter and bullpen)
-  - Unearned run average (vs. ERA)
+  - Unearned run average (instead of ERA)
   - [Strikeout rate](url: http://m.mlb.com/glossary/advanced-stats/strikeout-rate)
   - [Strikeouts per 9 inn.](url: http://m.mlb.com/glossary/advanced-stats/strikeouts-per-nine-innings)
   - [Walk rate](url: http://m.mlb.com/glossary/advanced-stats/walk-rate)
@@ -284,9 +294,175 @@ class: inverse
   - [BABIP](url: https://en.wikipedia.org/wiki/Batting_average_on_balls_in_play)
   - [WHIP](url: http://m.mlb.com/glossary/standard-stats/walks-and-hits-per-inning-pitched)
   - [Power finesse ratio](url: https://en.wikipedia.org/wiki/Power_finesse_ratio)
+  
+- General
+  - Runs (hits) vs. runs (hits) allowed
+  - 2-week home games vs. away games
 ]
 
 ---
+
+class: inverse
+
+## Features straight from the data
+
+.pull-left[
+- General (game average)
+  - Runs
+  - Hits
+  - Errors
+  - Month, day of week, time of day (noon, afternoon, evening)
+  - Wind, wind direction
+  - Temperature
+  
+- Team batting (game average)
+  - At-bats and plate appearances
+  - Hits
+  - Bases stolen and caught stealing
+  - Double and triple plays
+  - Ks against
+  - Hit by pitch
+  - Walks (intentional, not intentional)
+  - Singles, doubles, triples, homers
+]
+
+.pull-right[
+- Pitching (starter and bullpen, game average)
+  - Outs/innings pitched
+  - At-bats and plate appearances
+  - Unearned runs
+  - Pitches (game average and total)
+  - Ks
+  - Singles, doubles, triples, homers
+  - Groundouts, lineouts, flyouts
+  - Rest days
+]
+
+---
+
+class: inverse
+
+## Missing data
+
+--
+
+Most missing data due to 30/100 day averaging
+
+--
+
+- Starts of seasons
+- Starting pitchers who hadn't been on the mound lately
+
+--
+
+### Categorical variables
+
+- Create separate "unknown" category for `NULL`s
+
+--
+
+### Continuous variables
+
+- Data arguably missing at random, so fill with mean
+
+---
+
+class: inverse, center, middle
+background-image: url("https://images.unsplash.com/photo-1434854775064-aa2c72a4aa32?ixlib=rb-1.2.1&amp;ixid=MXwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHw%3D&amp;auto=format&amp;fit=crop&amp;w=2090&amp;q=80")
+background-size: cover
+
+# Feature Performance
+
+---
+
+.center[&lt;iframe src="midterm_plots/results_resp_x_pred.html" width="95%" height="600" id="igraph" scrolling="yes" seamless="seamless" frameBorder="0"&gt; &lt;/iframe&gt;]
+
+---
+
+.center[&lt;iframe src="midterm_plots/home_win_diff_start_k_100_diff.html" width="80%" height="600" id="igraph" scrolling="no" seamless="seamless" frameBorder="0"&gt; &lt;/iframe&gt;]
+
+---
+
+.center[&lt;iframe src="midterm_plots/diff_start_k_100_diff_start_groundouts_100_dmr.html" width="80%" height="600" id="igraph" scrolling="no" seamless="seamless" frameBorder="0"&gt; &lt;/iframe&gt;]
+
+---
+
+class: inverse
+
+# Feature importance
+
+--
+
+30 v.s. 100 days doesn't seem to matter much
+
+--
+
+The starting pitcher is really, *really*, **really**, ***really*** important
+
+--
+
+Most "cool" features didn't perform all that well
+
+&lt;/br&gt;
+
+--
+
+Really thought pythagorean expectation and rest time would give me some cooler stuff
+
+--
+
+- Pythagorean expectations are ranked middle of the road in RF importance
+- Rest hours, normal and extra innings versions, are 17th and 18th least important in RF model, respectively
+
+---
+
+class: inverse, center, middle
+background-image: linear-gradient(rgba(0,0,0,.75), rgba(0,0,0,.5)), url("https://static2.cbrimages.com/wordpress/wp-content/uploads/2020/05/zoolander-display.jpg")
+background-size: cover
+
+# Modeling
+
+---
+
+class: inverse
+
+# Modeling
+
+--
+
+## Random forest
+
+--
+
+- Random forest also seems to think starting pitchers are really important
+
+--
+
+- 80/20 train/test split, normalized:
+
+.center[
+```
+              precision    recall  f1-score   support
+           0       0.69      0.62      0.65      1240
+           1       0.70      0.75      0.72      1429
+
+    accuracy                           0.69      2669
+   macro avg       0.69      0.69      0.69      2669
+weighted avg       0.69      0.69      0.69      2669
+```
+]
+
+---
+
+## Other models
+
+--
+
+- Logistic model performed slightly worse than random forest
+
+--
+
+- Might try a (very basic) neural net thing? I dunno, I've got a good GPU
     </textarea>
     <style data-target="print-only">
       @media screen {
