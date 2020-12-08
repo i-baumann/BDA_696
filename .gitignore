@@ -151,3 +151,12 @@ media
 static
 
 # Project related ignores (place project related ignores below here)
+
+# hw 5
+baseball.sql
+*.csv
+hw/hw_5/databases/
+hw/hw_5/log
+
+# baseball
+baseball/midterm_plots
