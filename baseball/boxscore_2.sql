@@ -1565,9 +1565,6 @@ CREATE INDEX cp_game ON cleanup_prep (game_id);
 
 # The great join
 
-# This is a shitty way to do this but SQL is fucking garbage and I can't believe there isn't a cleaner, faster
-# way to do a simple fucking join-add like you would in R
-
 DROP TABLE IF EXISTS temp;
 
 CREATE TABLE temp
