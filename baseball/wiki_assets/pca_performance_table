@@ -1,0 +1,62 @@
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Brier Score</th>
+      <th>Precision</th>
+      <th>Recall</th>
+      <th>F1</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Random Forest</th>
+      <td>0.486763</td>
+      <td>0.510151</td>
+      <td>0.513237</td>
+      <td>0.508509</td>
+    </tr>
+    <tr>
+      <th>Logistic</th>
+      <td>0.478521</td>
+      <td>0.511331</td>
+      <td>0.521479</td>
+      <td>0.367439</td>
+    </tr>
+    <tr>
+      <th>SVM</th>
+      <td>0.478272</td>
+      <td>0.750529</td>
+      <td>0.521728</td>
+      <td>0.358026</td>
+    </tr>
+    <tr>
+      <th>KNN</th>
+      <td>0.497752</td>
+      <td>0.500429</td>
+      <td>0.502248</td>
+      <td>0.500445</td>
+    </tr>
+    <tr>
+      <th>Decision Trees</th>
+      <td>0.500250</td>
+      <td>0.499070</td>
+      <td>0.499750</td>
+      <td>0.499287</td>
+    </tr>
+    <tr>
+      <th>LDA</th>
+      <td>0.478022</td>
+      <td>0.520347</td>
+      <td>0.521978</td>
+      <td>0.369776</td>
+    </tr>
+    <tr>
+      <th>Gaussian Naive Bayes</th>
+      <td>0.484266</td>
+      <td>0.493737</td>
+      <td>0.515734</td>
+      <td>0.410940</td>
+    </tr>
+  </tbody>
+</table>
