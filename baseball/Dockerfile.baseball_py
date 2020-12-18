@@ -1,0 +1,29 @@
+FROM python:3.8-slim
+
+COPY ./requirements.in requirements.in
+COPY ./brute_force.py brute_force.py
+COPY ./cat_correlation.py cat_correlation.py
+COPY ./pca.py pca.py
+COPY ./pca_models.py pca_models.py
+COPY ./non-pca_models.py non-pca_models.py
+COPY ./non-pca_models_time.py non-pca_models_time.py
+
+COPY ./boxscore_2.sql /scripts/boxscore_2.sql
+COPY ./baseball_client.sh /scripts/baseball_client.sh
+
+RUN pip install --no-cache-dir -U pip wheel setuptools \
+	&& pip install pip-tools \
+	&& pip-compile --output-file=requirements.txt requirements.in \
+	&& pip install -r requirements.txt \
+	&& apt-get update \
+    && apt-get install default-mysql-client -y \
+    && apt-get install curl -y \
+    && chmod +x ./scripts/baseball_client.sh \
+    && curl -O https://teaching.mrsharky.com/data/baseball.sql.tar.gz \
+  	&& tar -xvzf baseball.sql.tar.gz \
+  	&& mkdir -p results/pre-analysis \
+  	&& mkdir -p results/pca_models \
+  	&& mkdir -p results/non-pca_models \
+  	&& mkdir -p results/non-pca_models_timesplit
+
+CMD /scripts/baseball_client.sh
