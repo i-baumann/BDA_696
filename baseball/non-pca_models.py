@@ -8,62 +8,42 @@ from sklearn import preprocessing, svm
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, auc, classification_report, roc_curve
-from sklearn.model_selection import RandomizedSearchCV
+from sklearn.metrics import (accuracy_score, auc, classification_report,
+                             roc_curve)
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
+
+# Add to imports if tuning
+# from sklearn.model_selection import RandomizedSearchCV
 
 pd.options.mode.chained_assignment = None
 
 
 def load_clean():
     response_col = pd.read_pickle("processed_resp.pkl")
-    predicst_col = pd.read_pickle("processed_preds.pkl")
+    predicts_col = pd.read_pickle("processed_preds.pkl")
 
-    predicts_col = predicst_col[
-        predicst_col.columns.intersection(
+    predicts_col = predicts_col[
+        predicts_col.columns.intersection(
             [
-                # "diff_bat_hits_30",
-                # "diff_bat_k_30",
-                # "diff_bat_doubles_30",
-                # "diff_bat_triples_30",
-                # "diff_bat_homers_30",
                 "diff_bat_babip_100",
-                # "diff_bat_iso_100",
-                # "diff_start_unearned_runs_100",
                 "diff_start_groundouts_100",
                 "diff_start_lineouts_100",
                 "diff_start_flyouts_100",
-                # "diff_start_sac_fly_100",
-                # "diff_start_un_era_100",
                 "diff_pen_rest_days",
-                # "diff_pen_unearned_runs_30",
                 "diff_pen_k_30",
                 "diff_pen_popouts_100",
-                # "diff_pen_un_era_30",
-                # "diff_cleanup_rate_100",
                 "diff_start_k_100",
                 "diff_bat_sac_fly_30",
                 "diff_bat_caught_30",
-                # "diff_bat_k_30",
-                # "diff_bat_walk_per_ab_30",
                 "diff_bat_sac_bunt_100",
-                # "diff_pen_groundouts_100",
-                # "diff_cleanup_rate_100",
                 "diff_start_k_per_9_30",
                 "diff_bat_steals_100",
                 "diff_bat_k_100",
-                # "diff_bat_k_30",
-                # "diff_bat_bunt_pop_out_30",
                 "diff_bat_hr_per_pa_30",
                 "diff_pen_mean_pitches_100",
-                # "diff_bat_walk_per_pa_30",
-                # "diff_bat_sac_bunt_30",
-                # "diff_start_tot_pitches_100",
-                # "diff_bat_iso_100",
                 "diff_pen_sac_fly_100",
                 "diff_pen_pfr_30",
-                # "diff_runs_runs_allowed_100",
                 "diff_start_k_walk_ratio_30",
                 "diff_bat_sac_fly_100",
                 "diff_bat_sac_bunt_30",
@@ -83,54 +63,21 @@ def load_clean():
         predicts_col["diff_bat_steals_100"] + predicts_col["diff_bat_k_100"]
     )
 
-    # predicts_col["bat_hr_x_pen_pitches"] = (
-    #         predicts_col["diff_bat_hr_per_pa_30"] + predicts_col["diff_pen_mean_pitches_100"]
-    # )
-    #
-    # predicts_col["bat_sacfly_x_pen_pfr"] = (
-    #         predicts_col["diff_pen_sac_fly_100"] + predicts_col["diff_pen_pfr_30"]
-    # )
-
     predicts_col["start_k_x_start_groundouts"] = (
         predicts_col["diff_start_k_100"] + predicts_col["diff_start_groundouts_100"]
     )
-
-    # predicts_col["start_k_per_9_x_pen_groundouts"] = (
-    #         predicts_col["diff_start_k_per_9_30"] + predicts_col["diff_start_groundouts_100"]
-    # )
-
-    # predicts_col["start_k_x_bat_sac_fly"] = (
-    #         predicts_col["diff_start_k_100"] + predicts_col["diff_bat_sac_fly_100"]
-    # )
 
     predicts_col["start_k_x_bat_sac_bunt"] = (
         predicts_col["diff_start_k_100"] + predicts_col["diff_bat_sac_bunt_100"]
     )
 
-    # predicts_col["bat_babip_x_start_groundouts"] = (
-    #         predicts_col["diff_bat_babip_100"] + predicts_col["diff_start_groundouts_100"]
-    # )
-
-    # predicts_col["start_groundouts_x_start_k_walk_ratio"] = (
-    #         predicts_col["diff_start_groundouts_100"] + predicts_col["diff_start_k_walk_ratio_30"]
-    # )
-
     predicts_col = predicts_col.drop(
         columns=[
             "diff_bat_steals_100",
             "diff_bat_k_100",
-            "diff_bat_hr_per_pa_30",
-            "diff_pen_mean_pitches_100",
-            "diff_pen_sac_fly_100",
-            "diff_pen_pfr_30",
             "diff_start_k_100",
             "diff_start_groundouts_100",
-            "diff_bat_k_100",
-            "diff_bat_sac_fly_100",
             "diff_bat_sac_bunt_100",
-            "diff_bat_babip_100",
-            "diff_start_k_per_9_30",
-            "diff_start_k_walk_ratio_30",
         ]
     )
 
@@ -252,64 +199,51 @@ def models(response_col, predicts_col):
     prob = lda_probs[:, 1]
     auc_plot(prob, y_test, model_name)
 
-    # XGBoost
-    # D_train = xgb.DMatrix(X_train, label=y_train)
-    # D_test = xgb.DMatrix(X_test, label=y_test)
-    #
-    # param = {
-    #     'eta': 0.1,
-    #     'max_depth': 100,
-    #     'objective': 'multi:softprob',
-    #     'num_class': 6}
-    #
-    # steps = 1000  # The number of training iterations
-    #
-    # xgb_model = xgb.train(param, D_train, steps)
-    # xg_preds = xgb_model.predict(D_test)
+    # XGBoost)
+    xg_clf = xgb.XGBClassifier(
+        tree_method="approx",
+        predictor="cpu_predictor",
+        verbosity=1,
+        eval_metric=["merror", "map", "auc"],
+        objective="binary:logistic",
+        eta=0.3,
+        n_estimators=100,
+        colsample_bytree=0.95,
+        max_depth=3,
+        reg_alpha=0.001,
+        reg_lambda=150,
+        subsample=0.8,
+    )
 
-    #
-    # xg_clf = xgb.XGBRegressor(objective='reg:linear', colsample_bytree=0.3, learning_rate=0.1,
-    #                           max_depth=5, alpha=10, n_estimators=10)
-    #
-    # xg_clf.fit(X_train, y_train)
-    #
-    # xg_preds = xg_clf.predict(X_test)
-    # best_preds = np.asarray([np.argmax(line) for line in xg_preds])
-
-    # print("Precision = {}".format(precision_score(y_test, best_preds, average='macro')))
-    # print("Recall = {}".format(recall_score(y_test, best_preds, average='macro')))
-    # print("Accuracy = {}".format(accuracy_score(y_test, best_preds)))
-
-    # xg_clf = xgb.XGBClassifier(tree_method = "approx", predictor = "cpu_predictor", verbosity = 1,
-    #                        eval_metric = ["merror", "map", "auc"], objective = "binary:logistic")
     # param_grid = {
     #     'eta': [.025, .05, .1, .3],
-    #     'n_estimators': [1000],
+    #     'n_estimators': [100],
     #     'colsample_bytree': [.95, 1],
     #     'min_child_weight': [0, .5, 1],
-    #     'gamma': [0, .1, .2],
-    #     'max_depth': [3, 5, 7, 10],
-    #     'reg_alpha': [3.25, 3.3125, 3.5],
+    #     'gamma': [0, 2, 4, 6],
+    #     'max_depth': [3],
+    #     'reg_alpha': [.001, .01, .1, 1, 100],
     #     'reg_lambda': [70, 100, 150],
-    #     'subsample': [.92, .925, .93]
+    #     'subsample': [.2, .4, .6, .8, 1]
     # }
     #
     # xgb_rscv = RandomizedSearchCV(xg_clf, param_distributions=param_grid, scoring="f1_micro",
     #                               cv=3, verbose=0, random_state=1234, n_iter=10)
-    #
-    # xgb_model = xgb_rscv.fit(X_train_norm, y_train)
-    # xgb_preds = xgb_model.predict(X_test_norm)
-    #
-    # print("XGBoost:\n", classification_report(y_test, xgb_preds))
-    #
-    # # XGB ROC plot
-    # model_name = "XGBoost"
-    # xgb_probs = xgb_model.predict_proba(X_test_norm)
-    # prob = xgb_probs[:, 1]
-    # auc_plot(prob, y_test, model_name)
 
-    # Tuning results
-    # print(xgb_model.best_estimator_.get_params())
+    # xgb_model = xgb_rscv.fit(X_train_norm, y_train)
+
+    xgb_model = xg_clf.fit(X_train_norm, y_train)
+    xgb_preds = xgb_model.predict(X_test_norm)
+
+    print("XGBoost:\n", classification_report(y_test, xgb_preds))
+
+    # XGB ROC plot
+    model_name = "XGBoost"
+    xgb_probs = xgb_model.predict_proba(X_test_norm)
+    prob = xgb_probs[:, 1]
+    auc_plot(prob, y_test, model_name)
+
+    # # Tuning results
     # print("Learning rate: ", xgb_model.best_estimator_.get_params()["eta"])
     # print("Number of Trees: ", xgb_model.best_estimator_.get_params()["n_estimators"])
     # print("Max Features at Split: ", xgb_model.best_estimator_.get_params()["colsample_bytree"])
@@ -318,16 +252,6 @@ def models(response_col, predicts_col):
     # print("Lamda: ", xgb_model.best_estimator_.get_params()["reg_lambda"])
     # print("Subsample: ", xgb_model.best_estimator_.get_params()["subsample"])
 
-    model = xgb.XGBClassifier()
-    n_estimators = [100, 200, 500, 1000]
-    max_depth = [3, 5, 10]
-    param_grid = dict(n_estimators=n_estimators, max_depth=max_depth)
-    rand_search = RandomizedSearchCV(
-        model, param_grid, scoring="neg_log_loss", n_jobs=-1, cv=3
-    )
-    rand_result = rand_search.fit(X_train_norm, y_train)
-    print("Best: %f using %s" % (rand_result.best_score_, rand_result.best_params_))
-
     # Good old linear regression to get output
     # predictor = sm.add_constant(X_train)
     predictor = X_train
@@ -335,14 +259,14 @@ def models(response_col, predicts_col):
     logit_model = sm.Logit(y_train, predictor)
     logit_fitted = logit_model.fit()
 
-    ols_model = sm.OLS(y_train, predictor)
-    ols_fitted = ols_model.fit()
+    # ols_model = sm.OLS(y_train, predictor)
+    # ols_fitted = ols_model.fit()
 
     print(logit_fitted.summary())
-    print(ols_fitted.summary())
-    print(ols_fitted.mse_model)
-    print(ols_fitted.mse_resid)
-    print(ols_fitted.mse_total)
+    # print(ols_fitted.summary())
+    # print(ols_fitted.mse_model)
+    # print(ols_fitted.mse_resid)
+    # print(ols_fitted.mse_total)
 
     return
 
