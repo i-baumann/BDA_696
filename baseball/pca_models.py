@@ -3,6 +3,7 @@ import sys
 import pandas as pd
 import plotly.express as px
 import statsmodels.api as sm
+import xgboost as xgb
 from sklearn import preprocessing, svm
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.ensemble import RandomForestClassifier
@@ -25,13 +26,55 @@ def load_clean():
     predicts_col = predicts_col[
         predicts_col.columns.intersection(
             [
-                "diff_start_tot_pitches_30",
-                "diff_pen_tot_pitches_100",
-                "temperature",
-                "wind",
+                "diff_errors_30",
+                "diff_bat_steals_30",
+                "diff_bat_hr_per_pa_30",
+                "diff_bat_sac_bunt_30",
+                "diff_bat_sac_fly_30",
+                "diff_start_hits_30",
+                "diff_start_groundouts_30",
+                "diff_start_flyouts_30",
+                "diff_start_lineouts_30",
+                "diff_def_dp_30",
+                # COMBINATION VARS
+                "diff_bat_k_30",
+                "diff_start_k_30",
             ]
         )
     ]
+
+    predicts_col["bat_steals_x_bat_k"] = (
+        predicts_col["diff_bat_steals_30"] + predicts_col["diff_bat_k_30"]
+    )
+
+    predicts_col["bat_sac_bunt_x_bat_sac_fly"] = (
+        predicts_col["diff_bat_sac_bunt_30"] + predicts_col["diff_bat_sac_fly_30"]
+    )
+
+    predicts_col["start_k_x_start_groundouts"] = (
+        predicts_col["diff_start_k_30"] + predicts_col["diff_start_groundouts_30"]
+    )
+
+    predicts_col = predicts_col.drop(
+        columns=[
+            "diff_bat_steals_30",
+            "diff_bat_k_30",
+            "diff_bat_sac_bunt_30",
+            "diff_bat_sac_fly_30",
+            "diff_start_k_30",
+            "diff_start_groundouts_30",
+        ]
+    )
+
+    corr_matrix = predicts_col.corr()
+
+    cont_cont_matrix = px.imshow(
+        corr_matrix,
+        labels=dict(color="Pearson correlation:"),
+        title="Correlation Matrix",
+    )
+    cont_cont_matrix_save = "./results/pre-analysis/corr_PCA-model.html"
+    cont_cont_matrix.write_html(file=cont_cont_matrix_save, include_plotlyjs="cdn")
 
     return response_col, predicts_col
 
@@ -147,6 +190,33 @@ def models(response_col, predicts_col):
     prob = gnb_probs[:, 1]
     auc_plot(prob, y_test, model_name)
 
+    # XGBoost
+    xg_model = xgb.XGBClassifier(
+        tree_method="approx",
+        predictor="cpu_predictor",
+        verbosity=1,
+        eval_metric=["merror", "map", "auc"],
+        objective="binary:logistic",
+        eta=0.3,
+        n_estimators=100,
+        colsample_bytree=0.95,
+        max_depth=3,
+        reg_alpha=0.001,
+        reg_lambda=150,
+        subsample=0.8,
+    )
+
+    xgb_model = xg_model.fit(X_train_norm, y_train)
+    xgb_preds = xgb_model.predict(X_test_norm)
+
+    print("XGBoost:\n", classification_report(y_test, xgb_preds))
+
+    # XGB ROC plot
+    model_name = "XGBoost"
+    xgb_probs = xgb_model.predict_proba(X_test_norm)
+    prob = xgb_probs[:, 1]
+    auc_plot(prob, y_test, model_name)
+
     # Good old linear regression to get output
     # predictor = sm.add_constant(X_train)
     predictor = X_train
@@ -172,6 +242,7 @@ def models(response_col, predicts_col):
         "Decision Trees",
         "LDA",
         "Gaussian Naive Bayes",
+        "XGBoost",
     ]
     predictions = [
         rf_preds,
@@ -181,6 +252,7 @@ def models(response_col, predicts_col):
         dtc_preds,
         lda_preds,
         gnb_preds,
+        xgb_preds,
     ]
 
     perf_table(model_names, predictions, y_test)

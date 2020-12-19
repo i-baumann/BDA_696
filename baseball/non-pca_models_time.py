@@ -2,27 +2,24 @@ import sys
 
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import statsmodels.api as sm
+import xgboost as xgb
+from matplotlib import pyplot
 from sklearn import preprocessing, svm
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import (
-    auc,
-    brier_score_loss,
-    classification_report,
-    f1_score,
-    precision_score,
-    recall_score,
-    roc_curve,
-)
-from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit
+from sklearn.metrics import (auc, brier_score_loss, classification_report,
+                             f1_score, precision_score, recall_score,
+                             roc_curve)
+from sklearn.model_selection import TimeSeriesSplit
+from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
-from matplotlib import pyplot
-from sklearn.naive_bayes import GaussianNB
-import xgboost as xgb
-import plotly.graph_objects as go
+
+# Add to imports if tuning
+# from sklearn.model_selection import RandomizedSearchCV
 
 pd.options.mode.chained_assignment = None
 
@@ -96,7 +93,7 @@ def load_clean():
         labels=dict(color="Pearson correlation:"),
         title="Correlation Matrix",
     )
-    cont_cont_matrix_save = "./results/pre-analysis/non-PCA-model_time.html"
+    cont_cont_matrix_save = "./results/pre-analysis/corr_non-PCA-model_time.html"
     cont_cont_matrix.write_html(file=cont_cont_matrix_save, include_plotlyjs="cdn")
 
     return response_col, predicts_col

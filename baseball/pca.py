@@ -4,9 +4,9 @@ from sklearn.decomposition import PCA
 
 
 def pca_calc(pred_proc_pca):
-    normalizer = preprocessing.Normalizer(norm="l2")
+    scaling = preprocessing.StandardScaler()
     preds_norm = pd.DataFrame(
-        normalizer.fit_transform(pred_proc_pca), columns=pred_proc_pca.columns
+        scaling.fit_transform(pred_proc_pca), columns=pred_proc_pca.columns
     )
 
     pca = PCA()

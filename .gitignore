@@ -161,3 +161,6 @@ hw/hw_5/log
 # baseball
 baseball/midterm_plots
 baseball/baseball.txt
+baseball/db
+baseball/brute_force_plots
+baseball/results

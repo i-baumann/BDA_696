@@ -90,7 +90,7 @@ def load_clean():
         labels=dict(color="Pearson correlation:"),
         title="Correlation Matrix",
     )
-    cont_cont_matrix_save = "./results/pre-analysis/non-PCA-model.html"
+    cont_cont_matrix_save = "./results/pre-analysis/corr_non-PCA-model.html"
     cont_cont_matrix.write_html(file=cont_cont_matrix_save, include_plotlyjs="cdn")
 
     return response_col, predicts_col
