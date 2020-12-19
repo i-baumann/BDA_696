@@ -20,10 +20,6 @@ RUN pip install --no-cache-dir -U pip wheel setuptools \
     && apt-get install curl -y \
     && chmod +x ./scripts/baseball_client.sh \
     && curl -O https://teaching.mrsharky.com/data/baseball.sql.tar.gz \
-  	&& tar -xvzf baseball.sql.tar.gz \
-  	&& mkdir -p results/pre-analysis \
-  	&& mkdir -p results/pca_models \
-  	&& mkdir -p results/non-pca_models \
-  	&& mkdir -p results/non-pca_models_timesplit
+  	&& tar -xvzf baseball.sql.tar.gz
 
 CMD /scripts/baseball_client.sh

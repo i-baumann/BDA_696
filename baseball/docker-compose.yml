@@ -1,7 +1,8 @@
-version: "3.8"
+# Julien I swear to god don't change this version
+version: "2.1"
 services:
   baseball_db:
-    image: mysql:8.0.16 #ghcr.io/linuxserver/mariadb
+    image: mysql:8.0.16
     container_name: baseball_db
     environment:
       - PUID=1000
@@ -9,14 +10,47 @@ services:
       - MYSQL_ALLOW_EMPTY_PASSWORD=TRUE # pragma: allowlist secret
       - secure-file-priv=""
       - TZ=America/Los_Angeles
-      - MYSQL_DATABASE=baseball
       - SQL_CLIENT_PORT=3308
     command: --performance-schema --secure-file-priv="" --default-authentication-plugin=mysql_native_password
     volumes:
-      - ./:/var/lib/mysql
+      - ./db:/var/lib/mysql
     ports:
       - 3308:3308
+    healthcheck:
+        test: ["CMD", "mysqladmin" ,"ping", "-h", "baseball_db"]
+        interval: 30s
+        timeout: 10s
+        retries: 5
     expose:
       - "3308"
     hostname: baseball_db
     restart: unless-stopped
+    networks:
+      baseball-net:
+        aliases:
+          - baseball-db
+  baseball_py:
+    container_name: baseball_py
+    # depends_on:
+    #         baseball_db:
+    #             condition: service_healthy
+    build:
+      context: .
+      dockerfile: Dockerfile.baseball_py
+    ports:
+      - "8001:8001"
+    # # If need to step in:
+    # tty: true
+    # stdin_open: true
+    # entrypoint:
+    #   - python3
+    # restart: unless-stopped
+    volumes:
+      - ./brute_force_plots:/brute_force_plots
+      - ./results:/results
+    networks:
+      baseball-net:
+        aliases:
+          - baseball-py
+networks:
+  baseball-net:

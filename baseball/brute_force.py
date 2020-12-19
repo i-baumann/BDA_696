@@ -348,8 +348,7 @@ def predictor_processing(
         # Create processed df
         pred_data_prep = pd.DataFrame(pred_data_nan, columns=[pred_name])
 
-        if pred_name is None:
-            # pred_proc = pd.concat([response_col, pred_data_prep], axis=1)
+        if pred_proc is None:
             pred_proc = pred_data_prep
         else:
             pred_proc = pd.concat([pred_proc, pred_data_prep], axis=1)
