@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>BDA 696 Final Presentation</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Isaac Baumann" />
+    <link href="libs/remark-css-0.0.1/default.css" rel="stylesheet" />
+    <link href="libs/remark-css-0.0.1/default-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+
+
+
+
+name: BDA 696 Final Presentation
+class: left, top, inverse
+background-image: url(https://images.unsplash.com/photo-1463253897230-4e281bf226c0?ixid=MXwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHw%3D&amp;ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=2089&amp;q=80)
+background-size: cover
+
+# BDA 696 Final Presentation
+
+### Isaac Baumann - 2020-12-08
+
+---
+
+class: inverse
+
+# Agenda
+
+--
+
+1. What I'm predicting
+
+--
+
+2. Features
+
+  - Cool (?) features
+  - Boring features
+
+--
+
+3. Feature performance
+
+  - Pre-modeling, which ones work and which don't
+  - What I expected vs. what I didn't expect
+
+--
+
+4. Modeling (so far)
+
+---
+
+class: inverse
+background-image: linear-gradient(rgba(0,0,0,.75), rgba(0,0,0,.75)), url("https://images.unsplash.com/photo-1502671757500-da44a6626c7e?ixid=MXwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHw%3D&amp;ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=1567&amp;q=80")
+background-size: cover
+
+# What I'm Predicting
+
+--
+
+## Tired
+
+Just predicting if the home team wins, nothing more
+
+--
+
+## Wired
+
+I'm going hog-wild with the running average thing
+
+--
+
+Baseball changes quickly
+--
+, so I want to see how things work with a *30* day average and a *100* day average
+ 
+--
+
+Does recent performance better predict outcomes? Or is 100 (or maybe 100+) days better?
+
+--
+
+Basically *all* of my features will have a 30 day average version and a 100 day average version
+
+--
+
+No, I do not include all-time versions
+
+---
+
+class: inverse, center, middle
+background-image: linear-gradient(rgba(0,0,0,.75), rgba(0,0,0,.75)), url("https://images2.minutemediacdn.com/image/upload/c_crop,h_1001,w_1500,x_0,y_53/v1555006112/shape/mentalfloss/johnny_bravo_hed.jpg?itok=sl3NcLoS")
+background-size: cover
+
+# Cool Features
+
+---
+
+class: inverse
+background-image: linear-gradient(rgba(0,0,0,.75), rgba(0,0,0,.75)), url("https://images.unsplash.com/photo-1563861826100-9cb868fdbe1c?ixlib=rb-1.2.1&amp;ixid=MXwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHw%3D&amp;auto=format&amp;fit=crop&amp;w=1950&amp;q=80")
+background-size: cover
+
+## Time zones
+
+--
+
+- Shamelessly stealing from Ed's circadian rhythm idea
+
+--
+
+- Just assigning time zones to home teams and away teams, then combining them for each game to create a fixed effect
+
+--
+
+- Time zones don't change, so the FE should pick up differences due to teams' time zone differences
+
+--
+
+- MLB season is in standard daylight time, so no conversion needed for the Diamondbacks
+
+---
+
+class: center, inverse
+background-image: url("https://media1.tenor.com/images/cbf642d6a9033e5953037624dd7882f0/tenor.gif?itemid=9592017")
+background-size: cover
+
+---
+
+class: inverse
+background-image: linear-gradient(rgba(0,0,0,.75), rgba(0,0,0,.75)), url("https://images.unsplash.com/photo-1563861826100-9cb868fdbe1c?ixlib=rb-1.2.1&amp;ixid=MXwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHw%3D&amp;auto=format&amp;fit=crop&amp;w=1950&amp;q=80")
+background-size: cover
+
+## Rest time
+
+--
+
+- Time difference between a given game and the last game played by each team, adjusted for time zones
+
+--
+
+- Subtract 3 hours, since that's how long a typical baseball game lasts
+
+--
+
+  - Use length-of-game data? ¯`\_`(ツ)_/¯
+
+--
+
+## Rest time (extra innings-adjusted)
+
+- The same as above, but adjusting for extra innings in the previous game
+
+--
+
+- 2019: average inning (top and bottom) lasted 20 minutes
+
+--
+
+  - Subtract 1/3rd of an hour from rest time for each inning past 9
+  
+--
+
+  - Perfect? No. Good enough? Probably.
+
+---
+
+class: inverse
+background-image: linear-gradient(rgba(0,0,0,.75), rgba(0,0,0,.75)), url("https://i0.wp.com/www.brainpickings.org/wp-content/uploads/2018/05/pythagoras.jpg?fit=600%2C315&amp;ssl=1")
+background-size: cover
+
+## [Pythagorean expectation](https://en.wikipedia.org/wiki/Pythagorean_expectation)
+
+--
+
+.center[
+$$ win\space ratio = \frac{1}{1 + (runs\space allowed / runs\space scored)^{1.83}} $$
+]
+
+--
+
+- Represents predicted percentage of games a team *should* have won
+
+--
+
+- If the Angels play 100 games, scoring 400 runs and giving up 300 runs:
+
+--
+
+$$ \frac{1}{1 + (300 / 400)^{1.83}} = .629 $$
+
+ - They _should_ have won ~63% of those games 
+
+--
+
+- Ranked pretty highly in Julien's example!
+
+---
+
+class: inverse
+background-image: linear-gradient(rgba(0,0,0,.75), rgba(0,0,0,.5)), url("https://images.unsplash.com/photo-1431817986760-7cc7fbb937b2?ixlib=rb-1.2.1&amp;ixid=MXwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHw%3D&amp;auto=format&amp;fit=crop&amp;w=1267&amp;q=80")
+background-size: cover
+
+## [Ballpark factor](https://en.wikipedia.org/wiki/Batting_park_factor)
+
+--
+
+.center[
+$$ park\space factor = \bigg( \frac{\frac{home\space runs\space scored + home\space runs\space allowed}{home\space games}}{\frac{away\space runs\space scored + away\space runs\space allowed}{away\space games}} \bigg) $$
+]
+
+--
+
+- Represents how hitter/pitcher-friendly a home team's stadium is compared to other stadiums as well as how much a team's home ballpark is an advantage for that team
+
+--
+
+  - Batter-friendly if &gt; 1
+  
+  - Pitcher-friendly if &lt; 1
+
+---
+
+class: inverse
+background-image: linear-gradient(rgba(0,0,0,.75), rgba(0,0,0,.8)), url("https://ca-times.brightspotcdn.com/dims4/default/87a9054/2147483647/strip/true/crop/2048x1459+0+0/resize/1486x1059!/quality/90/?url=https%3A%2F%2Fcalifornia-times-brightspot.s3.amazonaws.com%2F6f%2F86%2F9ee0c5d04f37b2d343cb764fedda%2Fimage.png")
+background-size: cover
+
+## [Cleanup hitter stats](https://en.wikipedia.org/wiki/Cleanup_hitter)
+
+--
+
+The "cleanup" hitter is whoever is batting fourth in the lineup
+
+--
+
+  - The idea is the first three batters get on base, then the fourth "cleanup" batter scores them (and hopefully also himself)
+  
+  - Teams usually put their most powerful, most productive (in terms of RBI) batter in the fourth slot
+
+--
+
+Cleanup rate: how often runners score on the 4th batter's at-bats
+
+Cleanup batting average: the 4th batter's batting average
+
+--
+
+### Problem
+
+- Lots of lineup cards are missing from the `lineup` table
+
+- Can get around this by finding the fourth batter for each team in `inning` table
+
+---
+
+class: inverse, center, middle
+background-image: linear-gradient(rgba(0,0,0,.75), rgba(0,0,0,.1)), url("https://www.insidehook.com/wp-content/uploads/2016/12/MCDMONE_EC013_H-e1481916485642-1.jpg?fit=1200%2C675")
+background-size: cover
+
+# Boring Features
+
+---
+
+class: inverse
+
+## Sabermetrics features
+
+.pull-left[
+- Team batting
+  - [Batting average](https://en.wikipedia.org/wiki/Batting_average)
+  - [BABIP](https://en.wikipedia.org/wiki/Batting_average_on_balls_in_play)
+  - [On-base percentage](https://en.wikipedia.org/wiki/On-base_percentage)
+  - [Total bases](https://en.wikipedia.org/wiki/Total_bases)
+  - [Plate appearances per strikeout](https://en.wikipedia.org/wiki/Plate_appearances_per_strikeout)
+  - [Isolated power](https://en.wikipedia.org/wiki/Isolated_Power)
+  - [Slugging percentage](https://en.wikipedia.org/wiki/Slugging_percentage)
+  - Walks per AB/PA
+  - Intentional walks per AB/PA
+  - Home runs per AB/PA
+  - [Runs created](https://en.wikipedia.org/wiki/Runs_created)
+  - [Base runs](https://en.wikipedia.org/wiki/Base_runs)
+  - [Gross production average](https://en.wikipedia.org/wiki/Gross_production_average)
+]
+
+.pull-right[
+- Pitching (starter and bullpen)
+  - Unearned run average (instead of ERA)
+  - [Strikeout rate](http://m.mlb.com/glossary/advanced-stats/strikeout-rate)
+  - [Strikeouts per 9 inn.](http://m.mlb.com/glossary/advanced-stats/strikeouts-per-nine-innings)
+  - [Walk rate](http://m.mlb.com/glossary/advanced-stats/walk-rate)
+  - [Walks per 9 inn.](https://en.wikipedia.org/wiki/Bases_on_balls_per_nine_innings_pitched)
+  - [Strikeout/walk ratio](http://m.mlb.com/glossary/advanced-stats/strikeout-to-walk-ratio)
+  - [BABIP](https://en.wikipedia.org/wiki/Batting_average_on_balls_in_play)
+  - [WHIP](http://m.mlb.com/glossary/standard-stats/walks-and-hits-per-inning-pitched)
+  - [Power finesse ratio](https://en.wikipedia.org/wiki/Power_finesse_ratio)
+  
+- General
+  - Runs (hits) vs. runs (hits) allowed
+  - 2-week home games vs. away games
+]
+
+---
+
+class: inverse
+
+## Features straight from the data
+
+.pull-left[
+- General (game average)
+  - Runs
+  - Hits
+  - Errors
+  - Month, day of week, time of day (noon, afternoon, evening)
+  - Wind, wind direction
+  - Temperature
+  
+- Team batting (game average)
+  - At-bats and plate appearances
+  - Hits
+  - Bases stolen and caught stealing
+  - Double and triple plays
+  - Ks against
+  - Hit by pitch
+  - Walks (intentional, not intentional)
+  - Singles, doubles, triples, homers
+]
+
+.pull-right[
+- Pitching (starter and bullpen, game average)
+  - Outs/innings pitched
+  - At-bats and plate appearances
+  - Unearned runs
+  - Pitches (game average and total)
+  - Ks
+  - Singles, doubles, triples, homers
+  - Groundouts, lineouts, flyouts
+  - Rest days
+]
+
+---
+
+class: inverse
+
+## Missing data
+
+--
+
+Most missing data due to 30/100 day averaging
+
+--
+
+- Starts of seasons
+- Starting pitchers who hadn't been on the mound lately
+
+--
+
+### Categorical variables
+
+- Create separate "unknown" category for `NULL`s
+
+--
+
+### Continuous variables
+
+- Data arguably missing at random, so fill with median
+
+---
+
+class: inverse, center, middle
+background-image: url("https://images.unsplash.com/photo-1434854775064-aa2c72a4aa32?ixlib=rb-1.2.1&amp;ixid=MXwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHw%3D&amp;auto=format&amp;fit=crop&amp;w=2090&amp;q=80")
+background-size: cover
+
+# Feature Performance
+
+---
+
+.center[&lt;iframe src="results_resp_x_pred.html" width="95%" height="600" id="igraph" scrolling="yes" seamless="seamless" frameBorder="0"&gt; &lt;/iframe&gt;]
+
+---
+
+.center[&lt;iframe src="home_win_diff_start_k_100_diff.html" width="80%" height="600" id="igraph" scrolling="no" seamless="seamless" frameBorder="0"&gt; &lt;/iframe&gt;]
+
+---
+
+.center[&lt;iframe src="diff_start_k_100_diff_start_groundouts_100_dmr.html" width="80%" height="600" id="igraph" scrolling="no" seamless="seamless" frameBorder="0"&gt; &lt;/iframe&gt;]
+
+---
+
+class: inverse
+
+# Feature importance
+
+--
+
+30 v.s. 100 days doesn't seem to matter much
+
+--
+
+The starting pitcher is really, *really*, **really**, ***really*** important
+
+--
+
+Most "cool" features didn't perform all that well
+
+&lt;/br&gt;
+
+--
+
+Really thought pythagorean expectation and rest time would give me some cooler stuff
+
+--
+
+- Pythagorean expectations are ranked middle of the road in RF importance
+- Rest hours, normal and extra innings versions, are 17th and 18th least important in RF model, respectively
+
+---
+
+class: inverse, center, middle
+background-image: linear-gradient(rgba(0,0,0,.75), rgba(0,0,0,.5)), url("https://static2.cbrimages.com/wordpress/wp-content/uploads/2020/05/zoolander-display.jpg")
+background-size: cover
+
+# Modeling
+
+---
+
+class: inverse
+
+# Modeling
+
+--
+
+## Random forest
+
+--
+
+- Random forest also seems to think starting pitchers are really important
+
+--
+
+- 80/20 train/test split, the kitchen sink, normalized:
+
+.center[
+```
+              precision    recall  f1-score   support
+           0       0.69      0.62      0.65      1240
+           1       0.70      0.75      0.72      1429
+
+    accuracy                           0.69      2669
+   macro avg       0.69      0.69      0.69      2669
+weighted avg       0.69      0.69      0.69      2669
+```
+]
+
+---
+
+class: inverse
+
+## Other models
+
+--
+
+- Logistic model performed slightly worse than random forest
+
+--
+
+- Might try a (very basic) neural net?
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false,
+"highlightSpans": true,
+"ratio": "16:9"
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

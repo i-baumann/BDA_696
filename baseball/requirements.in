@@ -1,0 +1,9 @@
+numpy
+pandas
+plotly
+scikit-learn
+matplotlib
+xgboost
+pymysql
+jinja2
+statsmodels
