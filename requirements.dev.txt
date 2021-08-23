@@ -52,13 +52,13 @@ idna==2.10
     # via requests
 ipykernel==5.3.4
     # via notebook
+ipython==7.18.1
+    # via ipykernel
 ipython-genutils==0.2.0
     # via
     #   nbformat
     #   notebook
     #   traitlets
-ipython==7.18.1
-    # via ipykernel
 isort[requirements]==5.4.2
     # via -r requirements.dev.in
 jedi==0.17.2
@@ -85,10 +85,10 @@ jupyter-core==4.6.3
     #   nbconvert
     #   nbformat
     #   notebook
+jupyterlab==2.2.10
+    # via -r requirements.dev.in
 jupyterlab-server==1.2.0
     # via jupyterlab
-jupyterlab==2.2.6
-    # via -r requirements.dev.in
 markupsafe==1.1.1
     # via jinja2
 mccabe==0.6.1
